@@ -1,0 +1,15 @@
+{
+  "name": "ohmygod-pay-api",
+  "version": "1.0.0",
+  "description": "歐買尬收款 API 網頁系統",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

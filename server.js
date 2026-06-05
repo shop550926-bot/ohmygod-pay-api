@@ -6,6 +6,7 @@ const dayjs = require("dayjs");
 const path = require("path");
 
 const app = express();
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -49,12 +50,13 @@ app.post("/create-payment", (req, res) => {
   if (!HashKey || !HashIV) {
     return res.status(500).send(`
       <h2>尚未設定 HashKey / HashIV</h2>
-      <p>請先把 .env.example 改名成 .env，並填入你的 HASH_KEY 與 HASH_IV。</p>
+      <p>請確認 .env 或 Render Environment 已設定 HASH_KEY 與 HASH_IV。</p>
       <p><a href="/">返回</a></p>
     `);
   }
 
   const amount = Number(req.body.amount);
+  const payment = req.body.payment === "ATM" ? "ATM" : "CVS";
 
   if (!Number.isInteger(amount) || amount <= 0) {
     return res.status(400).send("金額錯誤，請重新輸入。<br><a href='/'>返回</a>");
@@ -70,24 +72,46 @@ app.post("/create-payment", (req, res) => {
     TotalAmount: amount,
     TradeDesc: "歐買尬",
     ItemName: "金爸爸遊戲幣",
-    ChoosePayment: "CVS",
-    StoreExpireDate: 1,
-    ReturnURL: "https://example.com/opay/notify",
-    ClientBackURL: "https://example.com/payment-result",
-    OrderResultURL: "https://example.com/payment-result",
+    ChoosePayment: payment,
+
+    // ATM 虛擬帳號有效天數
+    ExpireDate: 1,
+
+    // 超商代碼有效分鐘，1440 = 1 天
+    StoreExpireDate: 1440,
+
+    ReturnURL: "https://ohmygod-pay-api.onrender.com/opay/notify",
+    ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
+    OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
+
     NeedExtraPaidInfo: "Y",
     EncryptType: 1
   };
 
   params.CheckMacValue = createCheckMacValue(params);
 
-  let form = `<!doctype html><html><head><meta charset="utf-8"><title>前往歐買尬付款</title></head><body onload="document.forms[0].submit()"><p>正在前往歐買尬付款頁...</p><form method="POST" action="https://payment.opay.tw/Cashier/AioCheckOut">`;
+  let form = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>前往歐買尬付款</title>
+</head>
+<body onload="document.forms[0].submit()">
+  <p>正在前往歐買尬付款頁...</p>
+  <form method="POST" action="https://payment.funpoint.com.tw/Cashier/AioCheckOut/V5">
+`;
 
   for (const key of Object.keys(params)) {
-    form += `<input type="hidden" name="${key}" value="${String(params[key]).replace(/"/g, "&quot;")}">`;
+    form += `<input type="hidden" name="${key}" value="${String(params[key]).replace(/"/g, "&quot;")}">\n`;
   }
 
-  form += `</form></body></html>`;
+  form += `
+  </form>
+</body>
+</html>
+`;
+
   res.send(form);
 });
 

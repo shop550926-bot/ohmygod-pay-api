@@ -96,19 +96,52 @@
   <main class="card">
     <div class="brand">OMG PAYMENT</div>
     <h1>金爸爸遊戲幣收款</h1>
-    <div class="subtitle">輸入金額後，自動建立歐買尬超商代碼付款訂單。</div>
+    <div class="subtitle">
+輸入金額並選擇付款方式，自動建立歐買尬付款訂單。</div>
 
     <form method="POST" action="/create-payment">
-      <label for="amount">購買金額</label>
-      <input id="amount" name="amount" type="number" min="1" step="1" placeholder="例如：1000" required />
-      <button type="submit">產生超商代碼</button>
-    </form>
+
+  <label for="amount">購買金額</label>
+  <input
+    id="amount"
+    name="amount"
+    type="number"
+    min="1"
+    step="1"
+    placeholder="例如：1000"
+    required
+  />
+
+  <label for="payment" style="margin-top:15px;">付款方式</label>
+
+  <select
+    id="payment"
+    name="payment"
+    style="
+      width:100%;
+      height:58px;
+      border:1px solid #d1d5db;
+      border-radius:16px;
+      font-size:20px;
+      padding:0 18px;
+      margin-top:8px;
+    "
+  >
+    <option value="CVS">超商代碼</option>
+    <option value="ATM">ATM 虛擬帳號</option>
+  </select>
+
+  <button type="submit">
+    前往付款
+  </button>
+
+</form>
 
     <div class="info">
       收款名稱：歐買尬<br />
       交易方式：單筆收款<br />
       商品名稱：金爸爸遊戲幣<br />
-      收款方式：超商代碼<br />
+      收款方式：ATM 虛擬帳號 / 超商代碼<br />
       有效時間：1 天<br />
       寄送地址：付款人不需填寫
     </div>

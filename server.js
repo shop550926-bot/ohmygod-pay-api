@@ -453,7 +453,90 @@ function renderOrderStatus(order) {
 </html>
   `;
 }
+app.get("/admin/orders", (req, res) => {
+  const rows = Object.values(orders).map(order => `
+    <tr>
+      <td>${order.orderId}</td>
+      <td>${order.amount}</td>
+      <td>${order.payment}</td>
+      <td style="color:${order.status==="已付款"?"green":"red"}">
+        ${order.status}
+      </td>
+      <td>${order.createdAt}</td>
+      <td>
+        <a href="/order-status?orderId=${order.orderId}">
+          查看
+        </a>
+      </td>
+    </tr>
+  `).join("");
 
+  res.send(`
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>訂單後台</title>
+
+<style>
+body{
+font-family:"Microsoft JhengHei";
+background:#f3f4f6;
+padding:20px;
+}
+
+.box{
+max-width:1200px;
+margin:auto;
+background:white;
+padding:20px;
+border-radius:12px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:10px;
+text-align:center;
+}
+
+th{
+background:#f8fafc;
+}
+</style>
+
+</head>
+<body>
+
+<div class="box">
+
+<h2>訂單管理後台</h2>
+
+<table>
+
+<tr>
+<th>訂單編號</th>
+<th>金額</th>
+<th>付款方式</th>
+<th>付款狀態</th>
+<th>建立時間</th>
+<th>查看</th>
+</tr>
+
+${rows}
+
+</table>
+
+</div>
+
+</body>
+</html>
+`);
+});
 app.listen(PORT, () => {
   console.log(`收款系統已啟動：http://localhost:${PORT}`);
 });

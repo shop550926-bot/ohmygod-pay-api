@@ -7,14 +7,16 @@ const path = require("path");
 
 const app = express();
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const MerchantID = process.env.MERCHANT_ID || "1032429";
 const HashKey = process.env.HASH_KEY;
 const HashIV = process.env.HASH_IV;
 const PORT = process.env.PORT || 3000;
+
+const orders = {};
 
 function encodeOpay(raw) {
   return encodeURIComponent(raw)
@@ -70,7 +72,7 @@ app.get("/receiving-info", (req, res) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>填寫寄送資料 Receiving information</title>
+  <title>填寫付款資料</title>
   <style>
     body{margin:0;background:#eee;font-family:Arial,"Microsoft JhengHei",sans-serif;}
     .header{background:white;height:65px;border-bottom:1px solid #999;display:flex;align-items:center;padding-left:70px;font-size:26px;font-weight:bold;}
@@ -90,43 +92,34 @@ app.get("/receiving-info", (req, res) => {
   <div class="header">OhMyGod 金流</div>
 
   <div class="box">
-    <h2>填寫寄送資料 Receiving information</h2>
-
+    <h2>訂單資料</h2>
     <table>
-      <tr>
-        <td>商店名稱 Store</td>
-        <td>金幣多</td>
-      </tr>
-      <tr>
-        <td>商品名稱 Product</td>
-        <td>金爸爸遊戲幣</td>
-      </tr>
-      <tr>
-        <td>總計 Amount</td>
-        <td>${amount.toLocaleString()}元</td>
-      </tr>
+      <tr><td>商店名稱</td><td>金幣多</td></tr>
+      <tr><td>商品名稱</td><td>金爸爸遊戲幣</td></tr>
+      <tr><td>總計金額</td><td>${amount.toLocaleString()} 元</td></tr>
+      <tr><td>付款方式</td><td>${payment === "ATM" ? "ATM 虛擬帳號" : "超商代碼"}</td></tr>
     </table>
   </div>
 
   <div class="box">
-    <h2>付款人資訊 Order Information</h2>
+    <h2>付款人資訊</h2>
 
     <form method="POST" action="/submit-payment">
       <input type="hidden" name="amount" value="${amount}">
       <input type="hidden" name="payment" value="${payment}">
 
       <div class="row">
-        <label><span class="red">*</span>姓名 Name</label>
+        <label><span class="red">*</span>姓名</label>
         <input name="name" required placeholder="請輸入姓名">
       </div>
 
       <div class="row">
-        <label><span class="red">*</span>手機 Cell phone</label>
+        <label><span class="red">*</span>手機</label>
         <input name="phone" required placeholder="請輸入手機號碼">
       </div>
 
       <div class="row">
-        <label><span class="red">*</span>電子信箱 Email</label>
+        <label><span class="red">*</span>電子信箱</label>
         <input name="email" type="email" required placeholder="請輸入電子郵件">
       </div>
 
@@ -142,7 +135,7 @@ app.post("/submit-payment", (req, res) => {
   if (!HashKey || !HashIV) {
     return res.status(500).send(`
       <h2>尚未設定 HashKey / HashIV</h2>
-      <p>請確認 .env 或 Render Environment 已設定 HASH_KEY 與 HASH_IV。</p>
+      <p>請確認 Render Environment 已設定 HASH_KEY 與 HASH_IV。</p>
       <p><a href="/">返回</a></p>
     `);
   }
@@ -156,13 +149,25 @@ app.post("/submit-payment", (req, res) => {
 
   const orderId = "KBB" + dayjs().format("YYYYMMDDHHmmss");
 
+  orders[orderId] = {
+    orderId,
+    amount,
+    payment,
+    status: "未付款",
+    paymentNo: "",
+    bankCode: "",
+    vAccount: "",
+    expireDate: "",
+    createdAt: dayjs().format("YYYY/MM/DD HH:mm:ss")
+  };
+
   const params = {
     MerchantID,
     MerchantTradeNo: orderId,
     MerchantTradeDate: dayjs().format("YYYY/MM/DD HH:mm:ss"),
     PaymentType: "aio",
     TotalAmount: amount,
-    TradeDesc: "歐買尬",
+    TradeDesc: "OhMyGod Pay",
     ItemName: "金爸爸遊戲幣",
     ChoosePayment: payment,
 
@@ -186,7 +191,7 @@ app.post("/submit-payment", (req, res) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>前往歐買尬付款</title>
+  <title>前往付款</title>
 </head>
 <body onload="document.forms[0].submit()">
   <p>正在前往歐買尬付款頁...</p>
@@ -214,111 +219,93 @@ app.get("/api/opay/payment-info", (req, res) => {
   res.send("payment-info ok");
 });
 
-app.post("/api/opay/notify", (req, res) => {
-  console.log("收到歐買尬付款通知：", req.body);
-  res.send("1|OK");
-});
-
 app.post("/api/opay/payment-info", (req, res) => {
   console.log("收到歐買尬付款資訊：", req.body);
+
+  const data = req.body;
+  const orderId = data.MerchantTradeNo;
+
+  if (orders[orderId]) {
+    orders[orderId].paymentNo =
+      data.PaymentNo ||
+      data.CVSCode ||
+      data.CVSNo ||
+      "";
+
+    orders[orderId].bankCode =
+      data.BankCode || "";
+
+    orders[orderId].vAccount =
+      data.vAccount ||
+      data.VirtualAccount ||
+      "";
+
+    orders[orderId].expireDate =
+      data.ExpireDate ||
+      data.ExpireTime ||
+      "";
+
+    orders[orderId].paymentType =
+      data.PaymentType ||
+      data.PaymentTypeChargeFee ||
+      orders[orderId].payment;
+  }
+
+  console.log("更新後訂單：", orders[orderId]);
+
   res.send("1|OK");
 });
 
-app.get("/payment-result", (req, res) => {
-  res.send("付款流程完成或已返回商店頁。<br><a href='/'>回首頁</a>");
+app.post("/api/opay/notify", (req, res) => {
+  console.log("收到歐買尬付款通知：", req.body);
+
+  const data = req.body;
+  const orderId = data.MerchantTradeNo;
+
+  if (orders[orderId]) {
+    orders[orderId].status = data.RtnCode === "1" ? "已付款" : "未付款";
+  }
+
+  res.send("1|OK");
 });
 
 app.post("/payment-info", (req, res) => {
   console.log("歐買尬導回 payment-info：", req.body);
 
   const data = req.body;
+  const orderId = data.MerchantTradeNo;
 
-  res.send(`
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>付款資訊</title>
-  <style>
-    body{
-      font-family:"Microsoft JhengHei",Arial,sans-serif;
-      background:#f3f4f6;
-      padding:30px;
-    }
-    .box{
-      max-width:600px;
-      margin:40px auto;
-      background:white;
-      padding:30px;
-      border-radius:12px;
-      box-shadow:0 10px 30px rgba(0,0,0,.1);
-    }
-    h2{text-align:center;}
-    table{width:100%;border-collapse:collapse;margin-top:20px;}
-    td{border-bottom:1px solid #ddd;padding:12px;}
-    td:first-child{background:#f9fafb;width:35%;font-weight:bold;}
-    .code{
-      font-size:26px;
-      font-weight:900;
-      color:#dc2626;
-      letter-spacing:1px;
-    }
-    a{
-      display:block;
-      text-align:center;
-      margin-top:25px;
-    }
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>付款資訊</h2>
+  if (orders[orderId]) {
+    orders[orderId].paymentNo =
+      data.PaymentNo ||
+      data.CVSCode ||
+      data.CVSNo ||
+      orders[orderId].paymentNo;
 
-    <table>
-      <tr>
-        <td>訂單編號</td>
-        <td>${data.MerchantTradeNo || ""}</td>
-      </tr>
+    orders[orderId].bankCode =
+      data.BankCode ||
+      orders[orderId].bankCode;
 
-      <tr>
-        <td>交易金額</td>
-        <td>${data.TradeAmt || data.TotalAmount || ""}</td>
-      </tr>
+    orders[orderId].vAccount =
+      data.vAccount ||
+      data.VirtualAccount ||
+      orders[orderId].vAccount;
 
-      <tr>
-        <td>付款方式</td>
-        <td>${data.PaymentType || data.PaymentTypeChargeFee || ""}</td>
-      </tr>
+    orders[orderId].expireDate =
+      data.ExpireDate ||
+      data.ExpireTime ||
+      orders[orderId].expireDate;
+  }
 
-      <tr>
-        <td>超商代碼</td>
-        <td class="code">${data.PaymentNo || data.CVSCode || data.CVSNo || ""}</td>
-      </tr>
-
-      <tr>
-        <td>銀行代碼</td>
-        <td>${data.BankCode || ""}</td>
-      </tr>
-
-      <tr>
-        <td>虛擬帳號</td>
-        <td class="code">${data.vAccount || data.VirtualAccount || ""}</td>
-      </tr>
-
-      <tr>
-        <td>繳費期限</td>
-        <td>${data.ExpireDate || data.ExpireTime || ""}</td>
-      </tr>
-    </table>
-
-    <a href="/">回首頁</a>
-  </div>
-</body>
-</html>
-  `);
+  res.send(renderPaymentInfo(data, orders[orderId]));
 });
+
 app.get("/payment-info", (req, res) => {
   res.send("請回到歐買尬付款頁面取得繳費代碼。<br><a href='/'>回首頁</a>");
+});
+
+app.get("/payment-result", (req, res) => {
+  res.send("付款流程完成或已返回商店頁。<br><a href='/'>回首頁</a>");
 });
 
 app.get("/order-query", (req, res) => {
@@ -329,10 +316,10 @@ app.get("/order-query", (req, res) => {
   <meta charset="utf-8">
   <title>查詢訂單</title>
   <style>
-    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
-    .box{max-width:500px;margin:60px auto;background:white;padding:30px;border-radius:16px;}
-    input{width:100%;height:52px;padding:0 15px;font-size:18px;border:1px solid #ddd;border-radius:10px;}
-    button{width:100%;height:52px;margin-top:15px;border:0;border-radius:10px;background:#f59e0b;font-weight:900;font-size:18px;}
+    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#eefafa;padding:30px;}
+    .box{max-width:500px;margin:60px auto;background:#fffdf6;padding:30px;border-radius:16px;}
+    input{width:100%;height:52px;padding:0 15px;font-size:18px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;}
+    button{width:100%;height:52px;margin-top:15px;border:0;border-radius:10px;background:#f59e0b;font-weight:900;font-size:18px;cursor:pointer;}
   </style>
 </head>
 <body>
@@ -349,8 +336,124 @@ app.get("/order-query", (req, res) => {
 });
 
 app.get("/order-status", (req, res) => {
-  res.send("目前查詢頁已建立，付款狀態紀錄下一步接上。<br><a href='/'>回首頁</a>");
+  const orderId = req.query.orderId;
+  const order = orders[orderId];
+
+  if (!order) {
+    return res.send(`
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>查無訂單</title>
+  <style>
+    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
+    .box{max-width:500px;margin:60px auto;background:white;padding:30px;border-radius:16px;text-align:center;}
+    a{display:block;margin-top:20px;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>查無訂單資料</h2>
+    <p>請確認訂單編號是否正確。</p>
+    <p>如果網站剛重新部署，暫存訂單會被清空。</p>
+    <a href="/order-query">重新查詢</a>
+  </div>
+</body>
+</html>
+    `);
+  }
+
+  res.send(renderOrderStatus(order));
 });
+
+function renderPaymentInfo(data, order) {
+  const orderId = data.MerchantTradeNo || order?.orderId || "";
+  const amount = data.TradeAmt || data.TotalAmount || order?.amount || "";
+  const paymentType = data.PaymentType || data.PaymentTypeChargeFee || order?.payment || "";
+  const paymentNo = data.PaymentNo || data.CVSCode || data.CVSNo || order?.paymentNo || "";
+  const bankCode = data.BankCode || order?.bankCode || "";
+  const vAccount = data.vAccount || data.VirtualAccount || order?.vAccount || "";
+  const expireDate = data.ExpireDate || data.ExpireTime || order?.expireDate || "";
+
+  return `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>付款資訊</title>
+  <style>
+    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
+    .box{max-width:600px;margin:40px auto;background:white;padding:30px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.1);}
+    h2{text-align:center;}
+    table{width:100%;border-collapse:collapse;margin-top:20px;}
+    td{border-bottom:1px solid #ddd;padding:12px;}
+    td:first-child{background:#f9fafb;width:35%;font-weight:bold;}
+    .code{font-size:26px;font-weight:900;color:#dc2626;letter-spacing:1px;}
+    a{display:block;text-align:center;margin-top:25px;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>付款資訊</h2>
+    <table>
+      <tr><td>訂單編號</td><td>${orderId}</td></tr>
+      <tr><td>交易金額</td><td>${amount}</td></tr>
+      <tr><td>付款方式</td><td>${paymentType}</td></tr>
+      <tr><td>超商代碼</td><td class="code">${paymentNo}</td></tr>
+      <tr><td>銀行代碼</td><td>${bankCode}</td></tr>
+      <tr><td>虛擬帳號</td><td class="code">${vAccount}</td></tr>
+      <tr><td>繳費期限</td><td>${expireDate}</td></tr>
+    </table>
+    <a href="/order-query">查詢訂單</a>
+    <a href="/">回首頁</a>
+  </div>
+</body>
+</html>
+  `;
+}
+
+function renderOrderStatus(order) {
+  return `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>訂單狀態</title>
+  <style>
+    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
+    .box{max-width:600px;margin:40px auto;background:white;padding:30px;border-radius:12px;}
+    h2{text-align:center;}
+    table{width:100%;border-collapse:collapse;margin-top:20px;}
+    td{border-bottom:1px solid #ddd;padding:12px;}
+    td:first-child{background:#f9fafb;width:35%;font-weight:bold;}
+    .code{font-size:24px;font-weight:900;color:#dc2626;}
+    .status{font-size:22px;font-weight:900;color:${order.status === "已付款" ? "#16a34a" : "#dc2626"};}
+    a{display:block;text-align:center;margin-top:25px;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>訂單狀態</h2>
+    <table>
+      <tr><td>訂單編號</td><td>${order.orderId}</td></tr>
+      <tr><td>交易金額</td><td>${order.amount}</td></tr>
+      <tr><td>付款方式</td><td>${order.payment}</td></tr>
+      <tr><td>付款狀態</td><td class="status">${order.status}</td></tr>
+      <tr><td>超商代碼</td><td class="code">${order.paymentNo}</td></tr>
+      <tr><td>銀行代碼</td><td>${order.bankCode}</td></tr>
+      <tr><td>虛擬帳號</td><td class="code">${order.vAccount}</td></tr>
+      <tr><td>繳費期限</td><td>${order.expireDate}</td></tr>
+      <tr><td>建立時間</td><td>${order.createdAt}</td></tr>
+    </table>
+    <a href="/order-query">重新查詢</a>
+    <a href="/">回首頁</a>
+  </div>
+</body>
+</html>
+  `;
+}
+
 app.listen(PORT, () => {
   console.log(`收款系統已啟動：http://localhost:${PORT}`);
 });

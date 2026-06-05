@@ -46,13 +46,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.get("/api/opay/notify", (req, res) => {
-  res.send("notify ok");
-});
-
-app.get("/api/opay/payment-info", (req, res) => {
-  res.send("payment-info ok");
-});
+app.post("/create-payment", (req, res) => {
   if (!HashKey || !HashIV) {
     return res.status(500).send(`
       <h2>尚未設定 HashKey / HashIV</h2>
@@ -80,16 +74,14 @@ app.get("/api/opay/payment-info", (req, res) => {
     ItemName: "金爸爸遊戲幣",
     ChoosePayment: payment,
 
-    // ATM 虛擬帳號有效天數
     ExpireDate: 1,
-
-    // 超商代碼有效分鐘，1440 = 1 天
     StoreExpireDate: 1440,
 
     ReturnURL: "https://ohmygod-pay-api.onrender.com/api/opay/notify",
     ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
+    OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
     PaymentInfoURL: "https://ohmygod-pay-api.onrender.com/api/opay/payment-info",
-ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
+    ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
 
     NeedExtraPaidInfo: "Y",
     EncryptType: 1
@@ -128,4 +120,26 @@ app.get("/api/opay/notify", (req, res) => {
 
 app.get("/api/opay/payment-info", (req, res) => {
   res.send("payment-info ok");
+});
+
+app.post("/api/opay/notify", (req, res) => {
+  console.log("收到歐買尬付款通知：", req.body);
+  res.send("1|OK");
+});
+
+app.post("/api/opay/payment-info", (req, res) => {
+  console.log("收到歐買尬付款資訊：", req.body);
+  res.send("1|OK");
+});
+
+app.get("/payment-result", (req, res) => {
+  res.send("付款流程完成或已返回商店頁。<br><a href='/'>回首頁</a>");
+});
+
+app.get("/payment-info", (req, res) => {
+  res.send("付款資訊已建立，請依照歐買尬頁面指示完成付款。<br><a href='/'>回首頁</a>");
+});
+
+app.listen(PORT, () => {
+  console.log(`收款系統已啟動：http://localhost:${PORT}`);
 });

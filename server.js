@@ -321,6 +321,10 @@ app.get("/payment-info", (req, res) => {
   res.send("請回到歐買尬付款頁面取得繳費代碼。<br><a href='/'>回首頁</a>");
 });
 
+app.get("/admin", (req, res) => {
+  res.redirect("https://payment.funpoint.com.tw/");
+});
+
 app.listen(PORT, () => {
   console.log(`收款系統已啟動：http://localhost:${PORT}`);
 });

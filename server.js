@@ -80,7 +80,7 @@ app.post("/create-payment", (req, res) => {
     // 超商代碼有效分鐘，1440 = 1 天
     StoreExpireDate: 1440,
 
-    ReturnURL: "https://ohmygod-pay-api.onrender.com/opay/notify",
+    ReturnURL: "https://ohmygod-pay-api.onrender.com/api/opay/notify",
     ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
     OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
 
@@ -115,7 +115,7 @@ app.post("/create-payment", (req, res) => {
   res.send(form);
 });
 
-app.post("/opay/notify", (req, res) => {
+app.post("/api/opay/notify", (req, res) => {
   console.log("收到歐買尬付款通知：", req.body);
   res.send("1|OK");
 });

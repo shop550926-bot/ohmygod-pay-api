@@ -136,7 +136,8 @@ app.get("/payment-result", (req, res) => {
   res.send("付款流程完成或已返回商店頁。<br><a href='/'>回首頁</a>");
 });
 
-app.get("/payment-info", (req, res) => {
+app.post("/payment-info", (req, res) => {
+  console.log("歐買尬導回 payment-info：", req.body);
   res.send("付款資訊已建立，請依照歐買尬頁面指示完成付款。<br><a href='/'>回首頁</a>");
 });
 

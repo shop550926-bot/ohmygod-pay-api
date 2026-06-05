@@ -46,7 +46,13 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.post("/create-payment", (req, res) => {
+app.get("/api/opay/notify", (req, res) => {
+  res.send("notify ok");
+});
+
+app.get("/api/opay/payment-info", (req, res) => {
+  res.send("payment-info ok");
+});
   if (!HashKey || !HashIV) {
     return res.status(500).send(`
       <h2>尚未設定 HashKey / HashIV</h2>
@@ -82,7 +88,8 @@ app.post("/create-payment", (req, res) => {
 
     ReturnURL: "https://ohmygod-pay-api.onrender.com/api/opay/notify",
     ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
-    OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
+    PaymentInfoURL: "https://ohmygod-pay-api.onrender.com/api/opay/payment-info",
+ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
 
     NeedExtraPaidInfo: "Y",
     EncryptType: 1
@@ -115,15 +122,10 @@ app.post("/create-payment", (req, res) => {
   res.send(form);
 });
 
-app.post("/api/opay/notify", (req, res) => {
-  console.log("收到歐買尬付款通知：", req.body);
-  res.send("1|OK");
+app.get("/api/opay/notify", (req, res) => {
+  res.send("notify ok");
 });
 
-app.get("/payment-result", (req, res) => {
-  res.send("付款流程完成或已返回商店頁。<br><a href='/'>回首頁</a>");
-});
-
-app.listen(PORT, () => {
-  console.log(`收款系統已啟動：http://localhost:${PORT}`);
+app.get("/api/opay/payment-info", (req, res) => {
+  res.send("payment-info ok");
 });

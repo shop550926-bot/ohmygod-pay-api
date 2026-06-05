@@ -322,9 +322,8 @@ app.get("/payment-info", (req, res) => {
 });
 
 app.get("/admin", (req, res) => {
-  res.redirect("https://payment.funpoint.com.tw/");
+  res.redirect("https://portal.opay.tw/");
 });
-
 app.listen(PORT, () => {
   console.log(`收款系統已啟動：http://localhost:${PORT}`);
 });

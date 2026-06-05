@@ -321,8 +321,35 @@ app.get("/payment-info", (req, res) => {
   res.send("請回到歐買尬付款頁面取得繳費代碼。<br><a href='/'>回首頁</a>");
 });
 
-app.get("/admin", (req, res) => {
-  res.redirect("https://portal.opay.tw/");
+app.get("/order-query", (req, res) => {
+  res.send(`
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>查詢訂單</title>
+  <style>
+    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
+    .box{max-width:500px;margin:60px auto;background:white;padding:30px;border-radius:16px;}
+    input{width:100%;height:52px;padding:0 15px;font-size:18px;border:1px solid #ddd;border-radius:10px;}
+    button{width:100%;height:52px;margin-top:15px;border:0;border-radius:10px;background:#f59e0b;font-weight:900;font-size:18px;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>查詢訂單</h2>
+    <form method="GET" action="/order-status">
+      <input name="orderId" placeholder="請輸入訂單編號 KBB..." required>
+      <button type="submit">查詢</button>
+    </form>
+  </div>
+</body>
+</html>
+  `);
+});
+
+app.get("/order-status", (req, res) => {
+  res.send("目前查詢頁已建立，付款狀態紀錄下一步接上。<br><a href='/'>回首頁</a>");
 });
 app.listen(PORT, () => {
   console.log(`收款系統已啟動：http://localhost:${PORT}`);

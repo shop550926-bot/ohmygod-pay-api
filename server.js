@@ -230,7 +230,95 @@ app.get("/payment-result", (req, res) => {
 
 app.post("/payment-info", (req, res) => {
   console.log("歐買尬導回 payment-info：", req.body);
-  res.send("付款資訊已建立，請依照歐買尬頁面指示完成付款。<br><a href='/'>回首頁</a>");
+
+  const data = req.body;
+
+  res.send(`
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>付款資訊</title>
+  <style>
+    body{
+      font-family:"Microsoft JhengHei",Arial,sans-serif;
+      background:#f3f4f6;
+      padding:30px;
+    }
+    .box{
+      max-width:600px;
+      margin:40px auto;
+      background:white;
+      padding:30px;
+      border-radius:12px;
+      box-shadow:0 10px 30px rgba(0,0,0,.1);
+    }
+    h2{text-align:center;}
+    table{width:100%;border-collapse:collapse;margin-top:20px;}
+    td{border-bottom:1px solid #ddd;padding:12px;}
+    td:first-child{background:#f9fafb;width:35%;font-weight:bold;}
+    .code{
+      font-size:26px;
+      font-weight:900;
+      color:#dc2626;
+      letter-spacing:1px;
+    }
+    a{
+      display:block;
+      text-align:center;
+      margin-top:25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>付款資訊</h2>
+
+    <table>
+      <tr>
+        <td>訂單編號</td>
+        <td>${data.MerchantTradeNo || ""}</td>
+      </tr>
+
+      <tr>
+        <td>交易金額</td>
+        <td>${data.TradeAmt || data.TotalAmount || ""}</td>
+      </tr>
+
+      <tr>
+        <td>付款方式</td>
+        <td>${data.PaymentType || data.PaymentTypeChargeFee || ""}</td>
+      </tr>
+
+      <tr>
+        <td>超商代碼</td>
+        <td class="code">${data.PaymentNo || data.CVSCode || data.CVSNo || ""}</td>
+      </tr>
+
+      <tr>
+        <td>銀行代碼</td>
+        <td>${data.BankCode || ""}</td>
+      </tr>
+
+      <tr>
+        <td>虛擬帳號</td>
+        <td class="code">${data.vAccount || data.VirtualAccount || ""}</td>
+      </tr>
+
+      <tr>
+        <td>繳費期限</td>
+        <td>${data.ExpireDate || data.ExpireTime || ""}</td>
+      </tr>
+    </table>
+
+    <a href="/">回首頁</a>
+  </div>
+</body>
+</html>
+  `);
+});
+app.get("/payment-info", (req, res) => {
+  res.send("請回到歐買尬付款頁面取得繳費代碼。<br><a href='/'>回首頁</a>");
 });
 
 app.listen(PORT, () => {

@@ -21,7 +21,6 @@ const HashKey = process.env.HASH_KEY;
 const HashIV = process.env.HASH_IV;
 const PORT = process.env.PORT || 3000;
 
-const orders = {};
 async function initDB() {
   try {
     await pool.query(`
@@ -46,6 +45,7 @@ async function initDB() {
 }
 
 initDB();
+
 function encodeOpay(raw) {
   return encodeURIComponent(raw)
     .toLowerCase()
@@ -159,62 +159,58 @@ app.get("/receiving-info", (req, res) => {
   `);
 });
 
-app.post("/submit-payment", (req, res) => {
-  if (!HashKey || !HashIV) {
-    return res.status(500).send(`
-      <h2>尚未設定 HashKey / HashIV</h2>
-      <p>請確認 Render Environment 已設定 HASH_KEY 與 HASH_IV。</p>
-      <p><a href="/">返回</a></p>
-    `);
-  }
+app.post("/submit-payment", async (req, res) => {
+  try {
+    if (!HashKey || !HashIV) {
+      return res.status(500).send(`
+        <h2>尚未設定 HashKey / HashIV</h2>
+        <p>請確認 Render Environment 已設定 HASH_KEY 與 HASH_IV。</p>
+        <p><a href="/">返回</a></p>
+      `);
+    }
 
-  const amount = Number(req.body.amount);
-  const payment = req.body.payment === "ATM" ? "ATM" : "CVS";
+    const amount = Number(req.body.amount);
+    const payment = req.body.payment === "ATM" ? "ATM" : "CVS";
 
-  if (!Number.isInteger(amount) || amount <= 0) {
-    return res.status(400).send("金額錯誤，請重新輸入。<br><a href='/'>返回</a>");
-  }
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).send("金額錯誤，請重新輸入。<br><a href='/'>返回</a>");
+    }
 
-  const orderId = "KBB" + dayjs().format("YYYYMMDDHHmmss");
+    const orderId = "KBB" + dayjs().format("YYYYMMDDHHmmss");
 
-  orders[orderId] = {
-    orderId,
-    amount,
-    payment,
-    status: "未付款",
-    paymentNo: "",
-    bankCode: "",
-    vAccount: "",
-    expireDate: "",
-    createdAt: dayjs().format("YYYY/MM/DD HH:mm:ss")
-  };
+    await pool.query(
+      `INSERT INTO orders 
+      (order_id, amount, payment, status, payment_no, bank_code, v_account, expire_date)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [orderId, amount, payment, "未付款", "", "", "", ""]
+    );
 
-  const params = {
-    MerchantID,
-    MerchantTradeNo: orderId,
-    MerchantTradeDate: dayjs().format("YYYY/MM/DD HH:mm:ss"),
-    PaymentType: "aio",
-    TotalAmount: amount,
-    TradeDesc: "OhMyGod Pay",
-    ItemName: "金爸爸遊戲幣",
-    ChoosePayment: payment,
+    const params = {
+      MerchantID,
+      MerchantTradeNo: orderId,
+      MerchantTradeDate: dayjs().format("YYYY/MM/DD HH:mm:ss"),
+      PaymentType: "aio",
+      TotalAmount: amount,
+      TradeDesc: "OhMyGod Pay",
+      ItemName: "金爸爸遊戲幣",
+      ChoosePayment: payment,
 
-    ExpireDate: 1,
-    StoreExpireDate: 1440,
+      ExpireDate: 1,
+      StoreExpireDate: 1440,
 
-    ReturnURL: "https://ohmygod-pay-api.onrender.com/api/opay/notify",
-    ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
-    OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
-    PaymentInfoURL: "https://ohmygod-pay-api.onrender.com/api/opay/payment-info",
-    ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
+      ReturnURL: "https://ohmygod-pay-api.onrender.com/api/opay/notify",
+      ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
+      OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
+      PaymentInfoURL: "https://ohmygod-pay-api.onrender.com/api/opay/payment-info",
+      ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
 
-    NeedExtraPaidInfo: "Y",
-    EncryptType: 1
-  };
+      NeedExtraPaidInfo: "Y",
+      EncryptType: 1
+    };
 
-  params.CheckMacValue = createCheckMacValue(params);
+    params.CheckMacValue = createCheckMacValue(params);
 
-  let form = `
+    let form = `
 <!doctype html>
 <html>
 <head>
@@ -226,106 +222,92 @@ app.post("/submit-payment", (req, res) => {
   <form method="POST" action="https://payment.funpoint.com.tw/Cashier/AioCheckOut/V5">
 `;
 
-  for (const key of Object.keys(params)) {
-    form += `<input type="hidden" name="${key}" value="${String(params[key]).replace(/"/g, "&quot;")}">\n`;
-  }
+    for (const key of Object.keys(params)) {
+      form += `<input type="hidden" name="${key}" value="${String(params[key]).replace(/"/g, "&quot;")}">\n`;
+    }
 
-  form += `
+    form += `
   </form>
 </body>
 </html>
 `;
 
-  res.send(form);
-});
-
-app.get("/api/opay/notify", (req, res) => {
-  res.send("notify ok");
+    res.send(form);
+  } catch (err) {
+    console.error("建立付款單錯誤：", err);
+    res.status(500).send("建立付款單失敗，請稍後再試。<br><a href='/'>返回</a>");
+  }
 });
 
 app.get("/api/opay/payment-info", (req, res) => {
   res.send("payment-info ok");
 });
 
-app.post("/api/opay/payment-info", (req, res) => {
-  console.log("收到歐買尬付款資訊：", req.body);
+app.post("/api/opay/payment-info", async (req, res) => {
+  try {
+    console.log("收到歐買尬付款資訊：", req.body);
 
-  const data = req.body;
-  const orderId = data.MerchantTradeNo;
+    const data = req.body;
+    const orderId = data.MerchantTradeNo;
 
-  if (orders[orderId]) {
-    orders[orderId].paymentNo =
-      data.PaymentNo ||
-      data.CVSCode ||
-      data.CVSNo ||
-      "";
+    await pool.query(
+      `UPDATE orders
+       SET payment_no=$1, bank_code=$2, v_account=$3, expire_date=$4
+       WHERE order_id=$5`,
+      [
+        data.PaymentNo || data.CVSCode || data.CVSNo || "",
+        data.BankCode || "",
+        data.vAccount || data.VirtualAccount || "",
+        data.ExpireDate || data.ExpireTime || "",
+        orderId
+      ]
+    );
 
-    orders[orderId].bankCode =
-      data.BankCode || "";
-
-    orders[orderId].vAccount =
-      data.vAccount ||
-      data.VirtualAccount ||
-      "";
-
-    orders[orderId].expireDate =
-      data.ExpireDate ||
-      data.ExpireTime ||
-      "";
-
-    orders[orderId].paymentType =
-      data.PaymentType ||
-      data.PaymentTypeChargeFee ||
-      orders[orderId].payment;
+    res.send("1|OK");
+  } catch (err) {
+    console.error("更新付款資訊錯誤：", err);
+    res.send("1|OK");
   }
-
-  console.log("更新後訂單：", orders[orderId]);
-
-  res.send("1|OK");
 });
 
-app.post("/api/opay/notify", (req, res) => {
-  console.log("收到歐買尬付款通知：", req.body);
+app.post("/api/opay/notify", async (req, res) => {
+  try {
+    console.log("收到歐買尬付款通知：", req.body);
 
-  const data = req.body;
-  const orderId = data.MerchantTradeNo;
+    const data = req.body;
+    const orderId = data.MerchantTradeNo;
 
-  if (orders[orderId]) {
-    orders[orderId].status = data.RtnCode === "1" ? "已付款" : "未付款";
+    await pool.query(
+      `UPDATE orders
+       SET status=$1
+       WHERE order_id=$2`,
+      [data.RtnCode === "1" ? "已付款" : "未付款", orderId]
+    );
+
+    res.send("1|OK");
+  } catch (err) {
+    console.error("更新付款狀態錯誤：", err);
+    res.send("1|OK");
   }
-
-  res.send("1|OK");
 });
 
-app.post("/payment-info", (req, res) => {
-  console.log("歐買尬導回 payment-info：", req.body);
+app.post("/payment-info", async (req, res) => {
+  try {
+    console.log("歐買尬導回 payment-info：", req.body);
 
-  const data = req.body;
-  const orderId = data.MerchantTradeNo;
+    const data = req.body;
+    const orderId = data.MerchantTradeNo;
 
-  if (orders[orderId]) {
-    orders[orderId].paymentNo =
-      data.PaymentNo ||
-      data.CVSCode ||
-      data.CVSNo ||
-      orders[orderId].paymentNo;
+    const result = await pool.query(
+      `SELECT * FROM orders WHERE order_id=$1`,
+      [orderId]
+    );
 
-    orders[orderId].bankCode =
-      data.BankCode ||
-      orders[orderId].bankCode;
-
-    orders[orderId].vAccount =
-      data.vAccount ||
-      data.VirtualAccount ||
-      orders[orderId].vAccount;
-
-    orders[orderId].expireDate =
-      data.ExpireDate ||
-      data.ExpireTime ||
-      orders[orderId].expireDate;
+    res.send(renderPaymentInfo(data, result.rows[0]));
+  } catch (err) {
+    console.error("付款資訊頁錯誤：", err);
+    res.status(500).send("付款資訊讀取失敗。<br><a href='/'>回首頁</a>");
   }
-
-  res.send(renderPaymentInfo(data, orders[orderId]));
 });
 
 app.get("/payment-info", (req, res) => {
@@ -336,73 +318,14 @@ app.get("/payment-result", (req, res) => {
   res.send("付款流程完成或已返回商店頁。<br><a href='/'>回首頁</a>");
 });
 
-app.get("/order-query", (req, res) => {
-  res.send(`
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>查詢訂單</title>
-  <style>
-    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#eefafa;padding:30px;}
-    .box{max-width:500px;margin:60px auto;background:#fffdf6;padding:30px;border-radius:16px;}
-    input{width:100%;height:52px;padding:0 15px;font-size:18px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;}
-    button{width:100%;height:52px;margin-top:15px;border:0;border-radius:10px;background:#f59e0b;font-weight:900;font-size:18px;cursor:pointer;}
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>查詢訂單</h2>
-    <form method="GET" action="/order-status">
-      <input name="orderId" placeholder="請輸入訂單編號 KBB..." required>
-      <button type="submit">查詢</button>
-    </form>
-  </div>
-</body>
-</html>
-  `);
-});
-
-app.get("/order-status", (req, res) => {
-  const orderId = req.query.orderId;
-  const order = orders[orderId];
-
-  if (!order) {
-    return res.send(`
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>查無訂單</title>
-  <style>
-    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
-    .box{max-width:500px;margin:60px auto;background:white;padding:30px;border-radius:16px;text-align:center;}
-    a{display:block;margin-top:20px;}
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>查無訂單資料</h2>
-    <p>請確認訂單編號是否正確。</p>
-    <p>如果網站剛重新部署，暫存訂單會被清空。</p>
-    <a href="/order-query">重新查詢</a>
-  </div>
-</body>
-</html>
-    `);
-  }
-
-  res.send(renderOrderStatus(order));
-});
-
 function renderPaymentInfo(data, order) {
-  const orderId = data.MerchantTradeNo || order?.orderId || "";
+  const orderId = data.MerchantTradeNo || order?.order_id || "";
   const amount = data.TradeAmt || data.TotalAmount || order?.amount || "";
   const paymentType = data.PaymentType || data.PaymentTypeChargeFee || order?.payment || "";
-  const paymentNo = data.PaymentNo || data.CVSCode || data.CVSNo || order?.paymentNo || "";
-  const bankCode = data.BankCode || order?.bankCode || "";
-  const vAccount = data.vAccount || data.VirtualAccount || order?.vAccount || "";
-  const expireDate = data.ExpireDate || data.ExpireTime || order?.expireDate || "";
+  const paymentNo = data.PaymentNo || data.CVSCode || data.CVSNo || order?.payment_no || "";
+  const bankCode = data.BankCode || order?.bank_code || "";
+  const vAccount = data.vAccount || data.VirtualAccount || order?.v_account || "";
+  const expireDate = data.ExpireDate || data.ExpireTime || order?.expire_date || "";
 
   return `
 <!doctype html>
@@ -433,7 +356,6 @@ function renderPaymentInfo(data, order) {
       <tr><td>虛擬帳號</td><td class="code">${vAccount}</td></tr>
       <tr><td>繳費期限</td><td>${expireDate}</td></tr>
     </table>
-    <a href="/order-query">查詢訂單</a>
     <a href="/">回首頁</a>
   </div>
 </body>
@@ -441,78 +363,47 @@ function renderPaymentInfo(data, order) {
   `;
 }
 
-function renderOrderStatus(order) {
-  return `
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>訂單狀態</title>
-  <style>
-    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
-    .box{max-width:600px;margin:40px auto;background:white;padding:30px;border-radius:12px;}
-    h2{text-align:center;}
-    table{width:100%;border-collapse:collapse;margin-top:20px;}
-    td{border-bottom:1px solid #ddd;padding:12px;}
-    td:first-child{background:#f9fafb;width:35%;font-weight:bold;}
-    .code{font-size:24px;font-weight:900;color:#dc2626;}
-    .status{font-size:22px;font-weight:900;color:${order.status === "已付款" ? "#16a34a" : "#dc2626"};}
-    a{display:block;text-align:center;margin-top:25px;}
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h2>訂單狀態</h2>
-    <table>
-      <tr><td>訂單編號</td><td>${order.orderId}</td></tr>
-      <tr><td>交易金額</td><td>${order.amount}</td></tr>
-      <tr><td>付款方式</td><td>${order.payment}</td></tr>
-      <tr><td>付款狀態</td><td class="status">${order.status}</td></tr>
-      <tr><td>超商代碼</td><td class="code">${order.paymentNo}</td></tr>
-      <tr><td>銀行代碼</td><td>${order.bankCode}</td></tr>
-      <tr><td>虛擬帳號</td><td class="code">${order.vAccount}</td></tr>
-      <tr><td>繳費期限</td><td>${order.expireDate}</td></tr>
-      <tr><td>建立時間</td><td>${order.createdAt}</td></tr>
-    </table>
-    <a href="/order-query">重新查詢</a>
-    <a href="/">回首頁</a>
-  </div>
-</body>
-</html>
-  `;
-}
-app.get("/admin/orders", (req, res) => {
-  const rows = Object.values(orders).map(order => `
-    <tr>
-      <td>${order.orderId}</td>
-      <td>${order.amount}</td>
-      <td>${order.payment}</td>
-      <td style="color:${order.status==="已付款"?"green":"red"}">
-        ${order.status}
-      </td>
-      <td>${order.createdAt}</td>
-      <td>
-        <a href="/order-status?orderId=${order.orderId}">
-          查看
-        </a>
-      </td>
-    </tr>
-  `).join("");
+app.get("/admin/orders", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        order_id,
+        amount,
+        payment,
+        status,
+        payment_no,
+        bank_code,
+        v_account,
+        expire_date,
+        created_at
+      FROM orders
+      ORDER BY created_at DESC
+    `);
 
-  res.send(`
+    const rows = result.rows.map(order => `
+      <tr>
+        <td>${order.order_id}</td>
+        <td>${Number(order.amount).toLocaleString()}</td>
+        <td>${order.payment}</td>
+        <td style="color:${order.status === "已付款" ? "green" : "red"}">
+          ${order.status}
+        </td>
+        <td>${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}</td>
+      </tr>
+    `).join("");
+
+    res.send(`
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
 <title>訂單後台</title>
-
 <style>
 body{
 font-family:"Microsoft JhengHei";
 background:#f3f4f6;
 padding:20px;
 }
-
 .box{
 max-width:1200px;
 margin:auto;
@@ -520,51 +411,43 @@ background:white;
 padding:20px;
 border-radius:12px;
 }
-
 table{
 width:100%;
 border-collapse:collapse;
 }
-
 th,td{
 border:1px solid #ddd;
 padding:10px;
 text-align:center;
 }
-
 th{
 background:#f8fafc;
 }
 </style>
-
 </head>
 <body>
-
 <div class="box">
-
 <h2>訂單管理後台</h2>
-
 <table>
-
 <tr>
 <th>訂單編號</th>
 <th>金額</th>
 <th>付款方式</th>
 <th>付款狀態</th>
 <th>建立時間</th>
-<th>查看</th>
 </tr>
-
 ${rows}
-
 </table>
-
 </div>
-
 </body>
 </html>
 `);
+  } catch (err) {
+    console.error("後台讀取訂單錯誤：", err);
+    res.status(500).send("後台讀取失敗");
+  }
 });
+
 app.listen(PORT, () => {
   console.log(`收款系統已啟動：http://localhost:${PORT}`);
 });

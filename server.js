@@ -411,19 +411,25 @@ app.get("/admin/orders", async (req, res) => {
 
     const stats = statResult.rows[0];
 
-    const rows = result.rows.map(order => `
-      <tr>
-        <td>${order.order_id}</td>
-        <td>${Number(order.amount).toLocaleString()}</td>
-        <td>${order.payment}</td>
-        <td>
-          <span class="status ${order.status === "已付款" ? "paid" : "unpaid"}">
-            ${order.status}
-          </span>
-        </td>
-        <td>${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}</td>
-      </tr>
-    `).join("");
+   const rows = result.rows.map(order => `
+  <tr>
+    <td>${order.order_id}</td>
+    <td>${Number(order.amount).toLocaleString()}</td>
+    <td>${order.payment}</td>
+    <td>
+      <span class="status ${order.status === "已付款" ? "paid" : "unpaid"}">
+        ${order.status}
+      </span>
+    </td>
+    <td>${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}</td>
+
+    <td>
+      <a href="/admin/order/${order.order_id}">
+        查看
+      </a>
+    </td>
+  </tr>
+`).join("");
 
     res.send(`
 <!doctype html>
@@ -545,6 +551,7 @@ th{
 <th>付款方式</th>
 <th>付款狀態</th>
 <th>建立時間</th>
+<th>查看</th>
 </tr>
 ${rows || `<tr><td colspan="5">目前沒有訂單</td></tr>`}
 </table>
@@ -557,6 +564,132 @@ ${rows || `<tr><td colspan="5">目前沒有訂單</td></tr>`}
     console.error("後台讀取訂單錯誤：", err);
     res.status(500).send("後台讀取失敗");
   }
+});
+app.get("/admin/order/:orderId", async (req, res) => {
+
+  const orderId = req.params.orderId;
+
+  const result = await pool.query(
+    "SELECT * FROM orders WHERE order_id=$1",
+    [orderId]
+  );
+
+  if (!result.rows.length) {
+    return res.send("找不到訂單");
+  }
+
+  const order = result.rows[0];
+
+  res.send(`
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>訂單詳細資訊</title>
+
+<style>
+body{
+font-family:"Microsoft JhengHei";
+background:#f3f4f6;
+padding:30px;
+}
+
+.box{
+max-width:700px;
+margin:auto;
+background:white;
+padding:30px;
+border-radius:16px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+td{
+border:1px solid #ddd;
+padding:12px;
+}
+
+td:first-child{
+background:#f8fafc;
+font-weight:900;
+width:35%;
+}
+
+.code{
+font-size:24px;
+font-weight:900;
+color:#dc2626;
+}
+
+.back{
+display:inline-block;
+margin-top:20px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="box">
+
+<h2>訂單詳細資訊</h2>
+
+<table>
+
+<tr>
+<td>訂單編號</td>
+<td>${order.order_id}</td>
+</tr>
+
+<tr>
+<td>金額</td>
+<td>${order.amount}</td>
+</tr>
+
+<tr>
+<td>付款方式</td>
+<td>${order.payment}</td>
+</tr>
+
+<tr>
+<td>付款狀態</td>
+<td>${order.status}</td>
+</tr>
+
+<tr>
+<td>超商代碼</td>
+<td class="code">${order.payment_no || "-"}</td>
+</tr>
+
+<tr>
+<td>銀行代碼</td>
+<td>${order.bank_code || "-"}</td>
+</tr>
+
+<tr>
+<td>虛擬帳號</td>
+<td class="code">${order.v_account || "-"}</td>
+</tr>
+
+<tr>
+<td>繳費期限</td>
+<td>${order.expire_date || "-"}</td>
+</tr>
+
+</table>
+
+<a class="back" href="/admin/orders">
+返回後台
+</a>
+
+</div>
+
+</body>
+</html>
+`);
 });
 
 app.listen(PORT, () => {

@@ -38,13 +38,38 @@ async function initDB() {
       )
     `);
 
+    // 刪除7天前訂單
+    await pool.query(`
+      DELETE FROM orders
+      WHERE created_at < NOW() - INTERVAL '7 days'
+    `);
+
     console.log("✅ PostgreSQL 已連線");
+    console.log("✅ 已清除7天前訂單");
+
   } catch (err) {
     console.error("❌ PostgreSQL 錯誤", err);
   }
 }
 
 initDB();
+
+const cron = require("node-cron");
+
+cron.schedule("0 0 * * *", async () => {
+  try {
+
+    const result = await pool.query(`
+      DELETE FROM orders
+      WHERE created_at < NOW() - INTERVAL '7 days'
+    `);
+
+    console.log(`✅ 已清除 ${result.rowCount} 筆7天前訂單`);
+
+  } catch (err) {
+    console.error("自動清理失敗", err);
+  }
+});
 
 function encodeOpay(raw) {
   return encodeURIComponent(raw)

@@ -342,7 +342,6 @@ app.post("/api/opay/payment-info", async (req, res) => {
     orderId
   ]
 );
-    );
 
     res.send("1|OK");
   } catch (err) {

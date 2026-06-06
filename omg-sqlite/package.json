@@ -1,0 +1,14 @@
+{
+  "name": "omg-pay-sqlite",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dayjs": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "sqlite3": "latest"
+  }
+}

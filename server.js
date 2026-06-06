@@ -4,8 +4,13 @@ const express = require("express");
 const crypto = require("crypto");
 const dayjs = require("dayjs");
 const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.json({ limit: "10mb" }));
@@ -17,7 +22,30 @@ const HashIV = process.env.HASH_IV;
 const PORT = process.env.PORT || 3000;
 
 const orders = {};
+async function initDB() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        order_id VARCHAR(50) UNIQUE,
+        amount INTEGER,
+        payment VARCHAR(20),
+        status VARCHAR(20),
+        payment_no VARCHAR(100),
+        bank_code VARCHAR(50),
+        v_account VARCHAR(100),
+        expire_date VARCHAR(100),
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
 
+    console.log("✅ PostgreSQL 已連線");
+  } catch (err) {
+    console.error("❌ PostgreSQL 錯誤", err);
+  }
+}
+
+initDB();
 function encodeOpay(raw) {
   return encodeURIComponent(raw)
     .toLowerCase()

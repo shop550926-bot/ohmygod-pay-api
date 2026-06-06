@@ -346,46 +346,74 @@ app.get("/payment-result", (req, res) => {
 function renderPaymentInfo(data, order) {
   const orderId = data.MerchantTradeNo || order?.order_id || "";
   const amount = data.TradeAmt || data.TotalAmount || order?.amount || "";
-  const paymentType = data.PaymentType || data.PaymentTypeChargeFee || order?.payment || "";
   const paymentNo = data.PaymentNo || data.CVSCode || data.CVSNo || order?.payment_no || "";
   const bankCode = data.BankCode || order?.bank_code || "";
   const vAccount = data.vAccount || data.VirtualAccount || order?.v_account || "";
   const expireDate = data.ExpireDate || data.ExpireTime || order?.expire_date || "";
+  const copyValue = vAccount || paymentNo;
 
   return `
 <!doctype html>
-<html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <title>付款資訊</title>
-  <style>
-    body{font-family:"Microsoft JhengHei",Arial,sans-serif;background:#f3f4f6;padding:30px;}
-    .box{max-width:600px;margin:40px auto;background:white;padding:30px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.1);}
-    h2{text-align:center;}
-    table{width:100%;border-collapse:collapse;margin-top:20px;}
-    td{border-bottom:1px solid #ddd;padding:12px;}
-    td:first-child{background:#f9fafb;width:35%;font-weight:bold;}
-    .code{font-size:26px;font-weight:900;color:#dc2626;letter-spacing:1px;}
-    a{display:block;text-align:center;margin-top:25px;}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>付款資訊</title>
+<style>
+*{box-sizing:border-box;font-family:"Microsoft JhengHei",Arial,sans-serif;}
+body{margin:0;padding:20px;background:#f3f4f6;}
+.card{max-width:500px;margin:20px auto;background:white;border-radius:20px;padding:25px;box-shadow:0 10px 30px rgba(0,0,0,.08);}
+.success{text-align:center;font-size:26px;font-weight:900;color:#16a34a;margin-bottom:20px;}
+.label{font-size:16px;font-weight:900;color:#374151;margin-bottom:8px;text-align:center;}
+.code-box{background:#f9fafb;border:2px solid #f59e0b;border-radius:16px;padding:18px;text-align:center;margin-bottom:15px;}
+.code{font-size:30px;font-weight:900;color:#dc2626;word-break:break-all;letter-spacing:1px;}
+.copy-btn{width:100%;height:54px;border:0;border-radius:14px;background:#16a34a;color:white;font-size:18px;font-weight:900;cursor:pointer;}
+.info{margin-top:20px;background:#f9fafb;padding:18px;border-radius:16px;}
+.row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e5e7eb;padding:10px 0;font-size:15px;}
+.row span:first-child{color:#6b7280;}
+.row span:last-child{font-weight:800;text-align:right;word-break:break-all;}
+.home-btn{display:block;width:100%;margin-top:20px;height:54px;line-height:54px;text-align:center;background:#f59e0b;color:#111827;text-decoration:none;font-weight:900;border-radius:14px;}
+</style>
 </head>
+
 <body>
-  <div class="box">
-    <h2>付款資訊</h2>
-    <table>
-      <tr><td>訂單編號</td><td>${orderId}</td></tr>
-      <tr><td>交易金額</td><td>${amount}</td></tr>
-      <tr><td>付款方式</td><td>${paymentType}</td></tr>
-      <tr><td>超商代碼</td><td class="code">${paymentNo}</td></tr>
-      <tr><td>銀行代碼</td><td>${bankCode}</td></tr>
-      <tr><td>虛擬帳號</td><td class="code">${vAccount}</td></tr>
-      <tr><td>繳費期限</td><td>${expireDate}</td></tr>
-    </table>
-    <a href="/">回首頁</a>
+<div class="card">
+
+  <div class="success">✅ 訂單建立成功</div>
+
+  <div class="label">${vAccount ? "ATM 虛擬帳號" : "超商代碼"}</div>
+
+  <div class="code-box">
+    <div class="code" id="copyText">${copyValue || "-"}</div>
   </div>
+
+  <button class="copy-btn" onclick="copyCode()">📋 一鍵複製</button>
+
+  <div class="info">
+    <div class="row"><span>訂單編號</span><span>${orderId}</span></div>
+    <div class="row"><span>交易金額</span><span>${amount} 元</span></div>
+    <div class="row"><span>付款方式</span><span>${vAccount ? "ATM 虛擬帳號" : "超商代碼"}</span></div>
+    ${vAccount ? `<div class="row"><span>銀行代碼</span><span>${bankCode || "-"}</span></div>` : ""}
+    <div class="row"><span>繳費期限</span><span>${expireDate || "-"}</span></div>
+  </div>
+
+  <a href="/" class="home-btn">返回首頁</a>
+
+</div>
+
+<script>
+function copyCode(){
+  const text = document.getElementById("copyText").innerText.trim();
+
+  navigator.clipboard.writeText(text).then(function(){
+    alert("已複製：" + text);
+  });
+}
+</script>
+
 </body>
 </html>
-  `;
+`;
 }
 
 app.get("/admin/orders", async (req, res) => {

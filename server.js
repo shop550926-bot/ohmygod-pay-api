@@ -366,7 +366,8 @@ function renderPaymentInfo(data, order) {
 app.get("/admin/orders", async (req, res) => {
   try {
     const keyword = req.query.keyword || "";
-    const status = req.query.status || "all";
+const status = req.query.status || "all";
+const payment = req.query.payment || "all";
 
     let query = `
       SELECT 
@@ -390,26 +391,48 @@ app.get("/admin/orders", async (req, res) => {
       query += ` AND order_id ILIKE $${values.length}`;
     }
 
-    if (status !== "all") {
-      values.push(status);
-      query += ` AND status = $${values.length}`;
-    }
+    if (payment !== "all") {
+  values.push(payment);
+  query += ` AND payment = $${values.length}`;
+}
 
+if (status !== "all") {
+  values.push(status);
+  query += ` AND status = $${values.length}`;
+}
     query += ` ORDER BY created_at DESC`;
 
     const result = await pool.query(query, values);
 
-    const statResult = await pool.query(`
-      SELECT
-        COUNT(*)::int AS total_orders,
-        COUNT(*) FILTER (WHERE status = '已付款')::int AS paid_orders,
-        COUNT(*) FILTER (WHERE status != '已付款')::int AS unpaid_orders,
-        COALESCE(SUM(amount) FILTER (WHERE status = '已付款'), 0)::int AS paid_amount
-      FROM orders
-      WHERE created_at::date = CURRENT_DATE
-    `);
+const statResult = await pool.query(`
+  SELECT
+    COUNT(*)::int AS total_orders,
+    COUNT(*) FILTER (WHERE status = '已付款')::int AS paid_orders,
+    COUNT(*) FILTER (WHERE status != '已付款')::int AS unpaid_orders,
+    COALESCE(SUM(amount) FILTER (WHERE status = '已付款'), 0)::int AS paid_amount
+  FROM orders
+  WHERE created_at::date = CURRENT_DATE
+`);
 
-    const stats = statResult.rows[0];
+const stats = statResult.rows[0];
+
+const monthResult = await pool.query(`
+  SELECT
+    COALESCE(SUM(amount),0)::int AS month_amount
+  FROM orders
+  WHERE status='已付款'
+  AND DATE_TRUNC('month',created_at)=DATE_TRUNC('month',NOW())
+`);
+
+const totalResult = await pool.query(`
+  SELECT
+    COALESCE(SUM(amount),0)::int AS total_amount
+  FROM orders
+  WHERE status='已付款'
+`);
+
+const monthAmount = monthResult.rows[0].month_amount;
+const totalAmount = totalResult.rows[0].total_amount;
 
    const rows = result.rows.map(order => `
   <tr>
@@ -455,9 +478,8 @@ h2{
 }
 .stats{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(6,1fr);
   gap:12px;
-  margin-bottom:20px;
 }
 .card{
   background:#f9fafb;
@@ -528,20 +550,83 @@ th{
 <h2>訂單管理後台</h2>
 
 <div class="stats">
-  <div class="card">今日訂單<span>${stats.total_orders}</span></div>
-  <div class="card">今日收款<span>${Number(stats.paid_amount).toLocaleString()}</span></div>
-  <div class="card">已付款<span>${stats.paid_orders}</span></div>
-  <div class="card">未付款<span>${stats.unpaid_orders}</span></div>
+
+  <div class="card">
+    今日訂單
+    <span>${stats.total_orders}</span>
+  </div>
+
+  <div class="card">
+    今日收款
+    <span>${Number(stats.paid_amount).toLocaleString()}</span>
+  </div>
+
+  <div class="card">
+    本月收款
+    <span>${Number(monthAmount).toLocaleString()}</span>
+  </div>
+
+  <div class="card">
+    總收款
+    <span>${Number(totalAmount).toLocaleString()}</span>
+  </div>
+
+  <div class="card">
+    已付款
+    <span>${stats.paid_orders}</span>
+  </div>
+
+  <div class="card">
+    未付款
+    <span>${stats.unpaid_orders}</span>
+  </div>
+
 </div>
 
 <form class="search" method="GET" action="/admin/orders">
-  <input name="keyword" value="${keyword}" placeholder="搜尋訂單編號 KBB...">
-  <select name="status">
-    <option value="all" ${status === "all" ? "selected" : ""}>全部狀態</option>
-    <option value="未付款" ${status === "未付款" ? "selected" : ""}>未付款</option>
-    <option value="已付款" ${status === "已付款" ? "selected" : ""}>已付款</option>
+
+  <input
+    name="keyword"
+    value="${keyword}"
+    placeholder="搜尋訂單編號 KBB..."
+  >
+
+  <select name="payment">
+
+ <option value="all" ${payment === "all" ? "selected" : ""}>
+  全部付款方式
+</option>
+
+<option value="CVS" ${payment === "CVS" ? "selected" : ""}>
+  超商代碼
+</option>
+
+<option value="ATM" ${payment === "ATM" ? "selected" : ""}>
+  ATM虛擬帳號
+</option>
+
   </select>
-  <button type="submit">搜尋</button>
+
+  <select name="status">
+
+    <option value="all" ${status === "all" ? "selected" : ""}>
+      全部狀態
+    </option>
+
+    <option value="未付款" ${status === "未付款" ? "selected" : ""}>
+      未付款
+    </option>
+
+    <option value="已付款" ${status === "已付款" ? "selected" : ""}>
+      已付款
+    </option>
+
+  </select>
+
+  <button type="submit">
+    搜尋
+  </button>
+
 </form>
 
 <table>
@@ -553,7 +638,7 @@ th{
 <th>建立時間</th>
 <th>查看</th>
 </tr>
-${rows || `<tr><td colspan="5">目前沒有訂單</td></tr>`}
+${rows || `<tr><td colspan="6">目前沒有訂單</td></tr>`}
 </table>
 
 </div>

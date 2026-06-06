@@ -365,7 +365,10 @@ function renderPaymentInfo(data, order) {
 
 app.get("/admin/orders", async (req, res) => {
   try {
-    const result = await pool.query(`
+    const keyword = req.query.keyword || "";
+    const status = req.query.status || "all";
+
+    let query = `
       SELECT 
         order_id,
         amount,
@@ -377,16 +380,46 @@ app.get("/admin/orders", async (req, res) => {
         expire_date,
         created_at
       FROM orders
-      ORDER BY created_at DESC
+      WHERE 1=1
+    `;
+
+    const values = [];
+
+    if (keyword) {
+      values.push(`%${keyword}%`);
+      query += ` AND order_id ILIKE $${values.length}`;
+    }
+
+    if (status !== "all") {
+      values.push(status);
+      query += ` AND status = $${values.length}`;
+    }
+
+    query += ` ORDER BY created_at DESC`;
+
+    const result = await pool.query(query, values);
+
+    const statResult = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total_orders,
+        COUNT(*) FILTER (WHERE status = '已付款')::int AS paid_orders,
+        COUNT(*) FILTER (WHERE status != '已付款')::int AS unpaid_orders,
+        COALESCE(SUM(amount) FILTER (WHERE status = '已付款'), 0)::int AS paid_amount
+      FROM orders
+      WHERE created_at::date = CURRENT_DATE
     `);
+
+    const stats = statResult.rows[0];
 
     const rows = result.rows.map(order => `
       <tr>
         <td>${order.order_id}</td>
         <td>${Number(order.amount).toLocaleString()}</td>
         <td>${order.payment}</td>
-        <td style="color:${order.status === "已付款" ? "green" : "red"}">
-          ${order.status}
+        <td>
+          <span class="status ${order.status === "已付款" ? "paid" : "unpaid"}">
+            ${order.status}
+          </span>
         </td>
         <td>${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}</td>
       </tr>
@@ -400,34 +433,111 @@ app.get("/admin/orders", async (req, res) => {
 <title>訂單後台</title>
 <style>
 body{
-font-family:"Microsoft JhengHei";
-background:#f3f4f6;
-padding:20px;
+  font-family:"Microsoft JhengHei";
+  background:#f3f4f6;
+  padding:20px;
 }
 .box{
-max-width:1200px;
-margin:auto;
-background:white;
-padding:20px;
-border-radius:12px;
+  max-width:1200px;
+  margin:auto;
+  background:white;
+  padding:24px;
+  border-radius:16px;
+}
+h2{
+  margin-top:0;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:20px;
+}
+.card{
+  background:#f9fafb;
+  padding:16px;
+  border-radius:12px;
+  text-align:center;
+  font-weight:900;
+}
+.card span{
+  display:block;
+  margin-top:8px;
+  font-size:24px;
+}
+.search{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+}
+.search input,.search select{
+  height:44px;
+  padding:0 12px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  font-size:16px;
+}
+.search input{
+  flex:1;
+}
+.search button{
+  width:120px;
+  border:0;
+  border-radius:8px;
+  background:#111827;
+  color:white;
+  font-weight:900;
+  cursor:pointer;
 }
 table{
-width:100%;
-border-collapse:collapse;
+  width:100%;
+  border-collapse:collapse;
 }
 th,td{
-border:1px solid #ddd;
-padding:10px;
-text-align:center;
+  border:1px solid #ddd;
+  padding:12px;
+  text-align:center;
 }
 th{
-background:#f8fafc;
+  background:#f8fafc;
+}
+.status{
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:900;
+}
+.paid{
+  background:#dcfce7;
+  color:#166534;
+}
+.unpaid{
+  background:#fee2e2;
+  color:#991b1b;
 }
 </style>
 </head>
 <body>
 <div class="box">
+
 <h2>訂單管理後台</h2>
+
+<div class="stats">
+  <div class="card">今日訂單<span>${stats.total_orders}</span></div>
+  <div class="card">今日收款<span>${Number(stats.paid_amount).toLocaleString()}</span></div>
+  <div class="card">已付款<span>${stats.paid_orders}</span></div>
+  <div class="card">未付款<span>${stats.unpaid_orders}</span></div>
+</div>
+
+<form class="search" method="GET" action="/admin/orders">
+  <input name="keyword" value="${keyword}" placeholder="搜尋訂單編號 KBB...">
+  <select name="status">
+    <option value="all" ${status === "all" ? "selected" : ""}>全部狀態</option>
+    <option value="未付款" ${status === "未付款" ? "selected" : ""}>未付款</option>
+    <option value="已付款" ${status === "已付款" ? "selected" : ""}>已付款</option>
+  </select>
+  <button type="submit">搜尋</button>
+</form>
+
 <table>
 <tr>
 <th>訂單編號</th>
@@ -436,8 +546,9 @@ background:#f8fafc;
 <th>付款狀態</th>
 <th>建立時間</th>
 </tr>
-${rows}
+${rows || `<tr><td colspan="5">目前沒有訂單</td></tr>`}
 </table>
+
 </div>
 </body>
 </html>

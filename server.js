@@ -25,17 +25,25 @@ async function initDB() {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
-        id SERIAL PRIMARY KEY,
-        order_id VARCHAR(50) UNIQUE,
-        amount INTEGER,
-        payment VARCHAR(20),
-        status VARCHAR(20),
-        payment_no VARCHAR(100),
-        bank_code VARCHAR(50),
-        v_account VARCHAR(100),
-        expire_date VARCHAR(100),
-        created_at TIMESTAMP DEFAULT NOW()
-      )
+  id SERIAL PRIMARY KEY,
+  order_id VARCHAR(50) UNIQUE,
+  amount INTEGER,
+  payment VARCHAR(20),
+  status VARCHAR(20),
+
+  buyer_name VARCHAR(100),
+  buyer_phone VARCHAR(50),
+  buyer_email VARCHAR(150),
+
+  payment_no VARCHAR(100),
+  bank_code VARCHAR(50),
+  v_account VARCHAR(100),
+
+  trade_no VARCHAR(100),
+
+  expire_date VARCHAR(100),
+  created_at TIMESTAMP DEFAULT NOW()
+)
     `);
 
     // 刪除7天前訂單
@@ -43,7 +51,25 @@ async function initDB() {
       DELETE FROM orders
       WHERE created_at < NOW() - INTERVAL '7 days'
     `);
+await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(100)
+`);
 
+await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS buyer_phone VARCHAR(50)
+`);
+
+await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS buyer_email VARCHAR(150)
+`);
+
+await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS trade_no VARCHAR(100)
+`);
     console.log("✅ PostgreSQL 已連線");
     console.log("✅ 已清除7天前訂單");
 
@@ -203,12 +229,36 @@ app.post("/submit-payment", async (req, res) => {
 
     const orderId = "KBB" + dayjs().format("YYYYMMDDHHmmss");
 
-    await pool.query(
-      `INSERT INTO orders 
-      (order_id, amount, payment, status, payment_no, bank_code, v_account, expire_date)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [orderId, amount, payment, "未付款", "", "", "", ""]
-    );
+      await pool.query(
+  `INSERT INTO orders
+  (
+    order_id,
+    amount,
+    payment,
+    status,
+    buyer_name,
+    buyer_phone,
+    buyer_email,
+    payment_no,
+    bank_code,
+    v_account,
+    expire_date
+  )
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+  [
+    orderId,
+    amount,
+    payment,
+    "未付款",
+    req.body.name || "",
+    req.body.phone || "",
+    req.body.email || "",
+    "",
+    "",
+    "",
+    ""
+  ]
+);
 
     const params = {
       MerchantID,
@@ -276,16 +326,22 @@ app.post("/api/opay/payment-info", async (req, res) => {
     const orderId = data.MerchantTradeNo;
 
     await pool.query(
-      `UPDATE orders
-       SET payment_no=$1, bank_code=$2, v_account=$3, expire_date=$4
-       WHERE order_id=$5`,
-      [
-        data.PaymentNo || data.CVSCode || data.CVSNo || "",
-        data.BankCode || "",
-        data.vAccount || data.VirtualAccount || "",
-        data.ExpireDate || data.ExpireTime || "",
-        orderId
-      ]
+  `UPDATE orders
+   SET payment_no=$1,
+       bank_code=$2,
+       v_account=$3,
+       expire_date=$4,
+       trade_no=$5
+   WHERE order_id=$6`,
+  [
+    data.PaymentNo || data.CVSCode || data.CVSNo || "",
+    data.BankCode || "",
+    data.vAccount || data.VirtualAccount || "",
+    data.ExpireDate || data.ExpireTime || "",
+    data.TradeNo || data.OTradeNo || "",
+    orderId
+  ]
+);
     );
 
     res.send("1|OK");
@@ -424,16 +480,20 @@ const payment = req.query.payment || "all";
 
     let query = `
       SELECT 
-        order_id,
-        amount,
-        payment,
-        status,
-        payment_no,
-        bank_code,
-        v_account,
-        expire_date,
-        created_at
-      FROM orders
+  order_id,
+  amount,
+  payment,
+  status,
+  buyer_name,
+  buyer_phone,
+  buyer_email,
+  payment_no,
+  bank_code,
+  v_account,
+  trade_no,
+  expire_date,
+  created_at
+FROM orders
       WHERE 1=1
     `;
 
@@ -489,22 +549,48 @@ const totalAmount = totalResult.rows[0].total_amount;
 
    const rows = result.rows.map(order => `
   <tr>
-    <td>${order.order_id}</td>
-    <td>${Number(order.amount).toLocaleString()}</td>
-    <td>${order.payment}</td>
-    <td>
-      <span class="status ${order.status === "已付款" ? "paid" : "unpaid"}">
-        ${order.status}
-      </span>
-    </td>
-    <td>${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}</td>
 
-    <td>
-      <a href="/admin/order/${order.order_id}">
-        查看
-      </a>
-    </td>
-  </tr>
+<td>${order.order_id}</td>
+
+<td>${order.buyer_name || "-"}</td>
+
+<td>
+${order.payment_no || order.v_account || "-"}
+</td>
+
+<td>
+${Number(order.amount).toLocaleString()}
+</td>
+
+<td>
+${order.payment}
+</td>
+
+<td>
+<span class="status ${
+order.status === "已付款"
+? "paid"
+: "unpaid"
+}">
+${order.status}
+</span>
+</td>
+
+<td>
+${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
+</td>
+
+<td>
+${order.trade_no || "-"}
+</td>
+
+<td>
+<a href="/admin/order/${order.order_id}">
+查看
+</a>
+</td>
+
+</tr>
 `).join("");
 
     res.send(`
@@ -685,13 +771,16 @@ th{
 <table>
 <tr>
 <th>訂單編號</th>
+<th>姓名</th>
+<th>付款代碼</th>
 <th>金額</th>
 <th>付款方式</th>
 <th>付款狀態</th>
 <th>建立時間</th>
+<th>付款資訊</th>
 <th>查看</th>
 </tr>
-${rows || `<tr><td colspan="6">目前沒有訂單</td></tr>`}
+${rows || `<tr><td colspan="9">目前沒有訂單</td></tr>`}
 </table>
 
 </div>

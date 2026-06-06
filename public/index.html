@@ -15,14 +15,14 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 18px;
     }
     .card {
       width: 100%;
       max-width: 460px;
       background: #fff;
       border-radius: 24px;
-      padding: 34px;
+      padding: 28px;
       box-shadow: 0 24px 70px rgba(0,0,0,.45);
     }
     .brand {
@@ -36,12 +36,12 @@
     h1 {
       margin: 0;
       text-align: center;
-      font-size: 30px;
+      font-size: 28px;
     }
     .subtitle {
       text-align: center;
       color: #6b7280;
-      margin: 12px 0 28px;
+      margin: 12px 0 26px;
       line-height: 1.7;
     }
     label {
@@ -63,10 +63,33 @@
       border-color: #f59e0b;
       box-shadow: 0 0 0 4px rgba(245,158,11,.18);
     }
-    button {
+    .payment-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .pay-btn {
+      width: 100%;
+      height: 62px;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      background: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      color: #111827;
+      margin-top: 0;
+    }
+    .pay-btn.active {
+      border-color: #f59e0b;
+      background: #fff7ed;
+      color: #92400e;
+    }
+    .submit-btn {
       width: 100%;
       height: 58px;
-      margin-top: 18px;
+      margin-top: 22px;
       border: 0;
       border-radius: 16px;
       background: linear-gradient(135deg, #fbbf24, #f59e0b);
@@ -76,7 +99,7 @@
       cursor: pointer;
     }
     .info {
-      margin-top: 26px;
+      margin-top: 24px;
       padding: 18px;
       background: #f9fafb;
       border-radius: 16px;
@@ -89,83 +112,81 @@
       color: #9ca3af;
       margin-top: 18px;
       font-size: 13px;
+      line-height: 1.6;
     }
-.admin-btn {
-  display:block;
-  width:100%;
-  height:58px;
-  line-height:58px;
-  margin-top:12px;
-  border-radius:16px;
-  background:#111827;
-  color:white;
-  text-align:center;
-  text-decoration:none;
-  font-size:20px;
-  font-weight:900;
-}
-
   </style>
 </head>
+
 <body>
   <main class="card">
     <div class="brand">OMG PAYMENT</div>
     <h1>金爸爸遊戲幣收款</h1>
+
     <div class="subtitle">
-輸入金額並選擇付款方式，自動建立歐買尬付款訂單。</div>
+      輸入金額並選擇付款方式，建立歐買尬付款訂單。
+    </div>
 
     <form method="POST" action="/create-payment">
+      <label for="amount">購買金額</label>
+      <input
+        id="amount"
+        name="amount"
+        type="number"
+        min="1"
+        step="1"
+        placeholder="例如：1000"
+        required
+      />
 
-  <label for="amount">購買金額</label>
-  <input
-    id="amount"
-    name="amount"
-    type="number"
-    min="1"
-    step="1"
-    placeholder="例如：1000"
-    required
-  />
+      <label style="margin-top:18px;">付款方式</label>
 
-  <label for="payment" style="margin-top:15px;">付款方式</label>
+      <div class="payment-grid">
+        <button
+          type="button"
+          class="pay-btn active"
+          onclick="selectPayment('CVS', this)"
+        >
+          🏪 超商代碼
+        </button>
 
-  <select
-    id="payment"
-    name="payment"
-    style="
-      width:100%;
-      height:58px;
-      border:1px solid #d1d5db;
-      border-radius:16px;
-      font-size:20px;
-      padding:0 18px;
-      margin-top:8px;
-    "
-  >
-    <option value="CVS">超商代碼</option>
-    <option value="ATM">ATM 虛擬帳號</option>
-  </select>
+        <button
+          type="button"
+          class="pay-btn"
+          onclick="selectPayment('ATM', this)"
+        >
+          🏦 ATM 虛擬帳號
+        </button>
+      </div>
 
-  <button type="submit">
-  前往付款
-</button>
+      <input type="hidden" name="payment" id="payment" value="CVS" />
 
-<a href="/admin/orders" class="admin-btn">
-  訂單管理後台
-</a>
-
-</form>
+      <button class="submit-btn" type="submit">
+        建立付款訂單
+      </button>
+    </form>
 
     <div class="info">
       收款名稱：歐買尬<br />
-      交易方式：單筆收款<br />
       商品名稱：金爸爸遊戲幣<br />
       收款方式：ATM 虛擬帳號 / 超商代碼<br />
       有效時間：1 天<br />
       寄送地址：付款人不需填寫
     </div>
 
-    <div class="footer">金額確認後再送出，付款代碼建立後請於期限內完成付款。</div>
+    <div class="footer">
+      金額確認後再送出，付款代碼建立後請於期限內完成付款。
+    </div>
   </main>
+
+  <script>
+    function selectPayment(type, btn) {
+      document.querySelectorAll(".pay-btn").forEach(function(item) {
+        item.classList.remove("active");
+      });
+
+      btn.classList.add("active");
+      document.getElementById("payment").value = type;
+    }
+  </script>
 </body>
 </html>

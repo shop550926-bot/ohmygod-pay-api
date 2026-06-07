@@ -676,11 +676,12 @@ th{
   font-weight:900;
 }
 .paid{
-  background:#dcfce7;
+  background:#fee2e2;
   color:#166534;
 }
+
 .unpaid{
-  background:#fee2e2;
+  background:#dcfce7;
   color:#991b1b;
 }
   .header-area{

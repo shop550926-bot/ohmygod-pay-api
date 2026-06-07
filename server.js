@@ -165,6 +165,7 @@ app.get("/receiving-info", (req, res) => {
     input{width:390px;padding:12px;border:1px solid #ccc;border-radius:4px;}
     .btn{display:block;margin:35px auto 0;background:#333;color:white;border:0;padding:12px 55px;border-radius:4px;cursor:pointer;}
     .red{color:red;}
+    
   </style>
 </head>
 <body>
@@ -584,7 +585,8 @@ ${order.trade_no || "-"}
 </td>
 
 <td>
-<a href="/admin/order/${order.order_id}">
+<a class="view-btn"
+href="/admin/order/${order.order_id}">
 查看
 </a>
 </td>
@@ -601,8 +603,8 @@ ${order.trade_no || "-"}
 <style>
 body{
   font-family:"Microsoft JhengHei";
-  background:#f3f4f6;
-  padding:20px;
+  background:#fdf2f8;
+  padding:30px;
 }
 .box{
   max-width:1200px;
@@ -620,7 +622,8 @@ h2{
   gap:12px;
 }
 .card{
-  background:#f9fafb;
+  background:white;
+  border:2px solid #fbcfe8;
   padding:16px;
   border-radius:12px;
   text-align:center;
@@ -650,7 +653,7 @@ h2{
   width:120px;
   border:0;
   border-radius:8px;
-  background:#111827;
+  background:#db2777;
   color:white;
   font-weight:900;
   cursor:pointer;
@@ -680,24 +683,54 @@ th{
   background:#fee2e2;
   color:#991b1b;
 }
+  .header-area{
+  background:linear-gradient(135deg,#ec4899,#db2777);
+  color:white;
+  padding:24px;
+  border-radius:16px;
+  margin-bottom:20px;
+}
+
+.header-area h2{
+  margin:0;
+  font-size:32px;
+}
+
+.header-area div{
+  margin-top:8px;
+  opacity:.9;
+}
+
+.view-btn{
+  display:inline-block;
+  padding:8px 16px;
+  background:#ec4899;
+  color:white;
+  border-radius:10px;
+  text-decoration:none;
+  font-weight:900;
+}
 </style>
 </head>
 <body>
 <div class="box">
 
-<h2>訂單管理後台</h2>
+<div class="header-area">
+  <h2>訂單管理後台</h2>
+  <div>最近 7 天訂單資料</div>
+</div>
 
 <div class="stats">
 
   <div class="card">
-    今日訂單
-    <span>${stats.total_orders}</span>
-  </div>
+  7日收款
+  <span>${Number(totalAmount).toLocaleString()}</span>
+</div>
 
-  <div class="card">
-    今日收款
-    <span>${Number(stats.paid_amount).toLocaleString()}</span>
-  </div>
+<div class="card">
+  7日訂單
+  <span>${result.rows.length}</span>
+</div>
 
   <div class="card">
     本月收款
@@ -815,11 +848,11 @@ app.get("/admin/order/:orderId", async (req, res) => {
 
 <style>
 body{
-font-family:"Microsoft JhengHei";
-background:#f3f4f6;
-padding:30px;
+  font-family:"Microsoft JhengHei";
+  background:#fdf2f8;
+  padding:30px;
 }
-
+  
 .box{
 max-width:700px;
 margin:auto;
@@ -850,6 +883,44 @@ font-weight:900;
 color:#dc2626;
 }
 
+.view-btn{
+  display:inline-block;
+  padding:8px 16px;
+  background:#ec4899;
+  color:white;
+  border-radius:10px;
+  text-decoration:none;
+  font-weight:900;
+}
+
+.header-area{
+  background:linear-gradient(135deg,#ec4899,#db2777);
+  color:white;
+  padding:24px;
+  border-radius:16px;
+  margin-bottom:20px;
+}
+
+.header-area h2{
+  margin:0;
+  font-size:32px;
+}
+
+.header-area div{
+  margin-top:8px;
+  opacity:.9;
+}
+
+.detail-header{
+  background:linear-gradient(135deg,#ec4899,#db2777);
+  color:white;
+  padding:18px;
+  border-radius:12px;
+  font-size:26px;
+  font-weight:900;
+  margin-bottom:20px;
+}
+
 .back{
 display:inline-block;
 margin-top:20px;
@@ -861,7 +932,9 @@ margin-top:20px;
 
 <div class="box">
 
-<h2>訂單詳細資訊</h2>
+<div class="detail-header">
+  訂單詳細資訊
+</div>
 
 <table>
 
@@ -887,7 +960,27 @@ margin-top:20px;
 
 <tr>
 <td>超商代碼</td>
-<td class="code">${order.payment_no || "-"}</td>
+<td>
+
+<span class="code" id="copyCode">
+${order.payment_no || "-"}
+</span>
+
+<button
+onclick="copyPayment()"
+style="
+margin-left:10px;
+background:#ec4899;
+color:white;
+border:0;
+padding:6px 12px;
+border-radius:8px;
+cursor:pointer;
+">
+複製
+</button>
+
+</td>
 </tr>
 
 <tr>
@@ -912,6 +1005,21 @@ margin-top:20px;
 </a>
 
 </div>
+
+<script>
+
+function copyPayment(){
+
+const text =
+document.getElementById("copyCode").innerText;
+
+navigator.clipboard.writeText(text);
+
+alert("已複製付款代碼");
+
+}
+
+</script>
 
 </body>
 </html>

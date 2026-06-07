@@ -53,25 +53,23 @@ async function initDB() {
     `);
 await pool.query(`
 ALTER TABLE orders
-ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(100)
-`);
-
-await pool.query(`
-ALTER TABLE orders
-ADD COLUMN IF NOT EXISTS buyer_phone VARCHAR(50)
-`);
-
-await pool.query(`
-ALTER TABLE orders
-ADD COLUMN IF NOT EXISTS buyer_email VARCHAR(150)
-`);
-
-await pool.query(`
-ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS trade_no VARCHAR(100)
 `);
-    console.log("✅ PostgreSQL 已連線");
-    console.log("✅ 已清除7天前訂單");
+
+await pool.query(`
+UPDATE orders
+SET status='OK'
+WHERE status='已付款'
+`);
+
+await pool.query(`
+UPDATE orders
+SET status='NO'
+WHERE status='未付款'
+`);
+
+console.log("✅ PostgreSQL 已連線");
+console.log("✅ 已清除7天前訂單");
 
   } catch (err) {
     console.error("❌ PostgreSQL 錯誤", err);
@@ -676,12 +674,12 @@ th{
   font-weight:900;
 }
 .paid{
-  background:#fee2e2;
+  background:#dcfce7;
   color:#166534;
 }
 
 .unpaid{
-  background:#dcfce7;
+  background:#fee2e2;
   color:#991b1b;
 }
   .header-area{

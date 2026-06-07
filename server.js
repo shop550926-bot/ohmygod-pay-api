@@ -401,18 +401,6 @@ function renderPaymentInfo(data, order) {
   const orderId = data.MerchantTradeNo || order?.order_id || "";
   const amount = data.TradeAmt || data.TotalAmount || order?.amount || "";
   const paymentNo = data.PaymentNo || data.CVSCode || data.CVSNo || order?.payment_no || "";
-  const mobileUrl =
-  data.WebATMURL ||
-  data.ATMURL ||
-  data.PaymentURL ||
-  data.PayURL ||
-  data.CVSURL ||
-  data.CVSUrl ||
-  data.CVSBarcode ||
-  data.PaymentInfoURL ||
-  data.TradeURL ||
-  data.TradeUrl ||
-  "";
   const bankCode = data.BankCode || order?.bank_code || "";
   const vAccount = data.vAccount || data.VirtualAccount || order?.v_account || "";
   const expireDate = data.ExpireDate || data.ExpireTime || order?.expire_date || "";
@@ -439,38 +427,6 @@ body{margin:0;padding:20px;background:#f3f4f6;}
 .row span:first-child{color:#6b7280;}
 .row span:last-child{font-weight:800;text-align:right;word-break:break-all;}
 .home-btn{display:block;width:100%;margin-top:20px;height:54px;line-height:54px;text-align:center;background:#f59e0b;color:#111827;text-decoration:none;font-weight:900;border-radius:14px;}
-.pay-link-btn{
-  display:block;
-  width:100%;
-  margin-top:14px;
-  height:54px;
-  line-height:54px;
-  text-align:center;
-  background:#2563eb;
-  color:white;
-  text-decoration:none;
-  font-weight:900;
-  border-radius:14px;
-}
-
-.mobile-url-box{
-  margin-top:15px;
-  background:#f9fafb;
-  border-radius:14px;
-  padding:14px;
-  text-align:center;
-  border:1px solid #e5e7eb;
-}
-
-.mobile-url-title{
-  font-weight:900;
-  margin-bottom:8px;
-}
-
-.mobile-url-box a{
-  color:#2563eb;
-  word-break:break-all;
-}
 </style>
 </head>
 
@@ -487,18 +443,6 @@ body{margin:0;padding:20px;background:#f3f4f6;}
 
   <button class="copy-btn" onclick="copyCode()">📋 一鍵複製</button>
 
-  ${mobileUrl ? `
-  <a href="${mobileUrl}" target="_blank" class="pay-link-btn">
-    開啟手機繳費連結
-  </a>
-
-  <div class="mobile-url-box">
-    <div class="mobile-url-title">手機繳費連結</div>
-    <a href="${mobileUrl}" target="_blank">
-      ${mobileUrl}
-    </a>
-  </div>
-` : ""}
 
   <div class="info">
     <div class="row"><span>訂單編號</span><span>${orderId}</span></div>

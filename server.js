@@ -250,7 +250,7 @@ app.post("/submit-payment", async (req, res) => {
     orderId,
     amount,
     payment,
-    "未付款",
+    "NO",
     req.body.name || "",
     req.body.phone || "",
     req.body.email || "",
@@ -362,7 +362,7 @@ app.post("/api/opay/notify", async (req, res) => {
       `UPDATE orders
        SET status=$1
        WHERE order_id=$2`,
-      [data.RtnCode === "1" ? "已付款" : "未付款", orderId]
+      [data.RtnCode === "1" ? "OK" : "NO", orderId]
     );
 
     res.send("1|OK");
@@ -520,9 +520,9 @@ if (status !== "all") {
 const statResult = await pool.query(`
   SELECT
     COUNT(*)::int AS total_orders,
-    COUNT(*) FILTER (WHERE status = '已付款')::int AS paid_orders,
-    COUNT(*) FILTER (WHERE status != '已付款')::int AS unpaid_orders,
-    COALESCE(SUM(amount) FILTER (WHERE status = '已付款'), 0)::int AS paid_amount
+    COUNT(*) FILTER (WHERE status = 'OK')::int AS paid_orders,
+    COUNT(*) FILTER (WHERE status != 'OK')::int AS unpaid_orders,
+    COALESCE(SUM(amount) FILTER (WHERE status = 'OK'), 0)::int AS paid_amount
   FROM orders
   WHERE created_at::date = CURRENT_DATE
 `);
@@ -533,7 +533,7 @@ const monthResult = await pool.query(`
   SELECT
     COALESCE(SUM(amount),0)::int AS month_amount
   FROM orders
-  WHERE status='已付款'
+  WHERE status='OK'
   AND DATE_TRUNC('month',created_at)=DATE_TRUNC('month',NOW())
 `);
 
@@ -541,7 +541,7 @@ const totalResult = await pool.query(`
   SELECT
     COALESCE(SUM(amount),0)::int AS total_amount
   FROM orders
-  WHERE status='已付款'
+  WHERE status='OK'
 `);
 
 const monthAmount = monthResult.rows[0].month_amount;
@@ -568,7 +568,7 @@ ${order.payment}
 
 <td>
 <span class="status ${
-order.status === "已付款"
+order.status === "OK"
 ? "paid"
 : "unpaid"
 }">
@@ -743,12 +743,12 @@ th{
   </div>
 
   <div class="card">
-    已付款
+    OK
     <span>${stats.paid_orders}</span>
   </div>
 
   <div class="card">
-    未付款
+    NO
     <span>${stats.unpaid_orders}</span>
   </div>
 
@@ -784,12 +784,12 @@ th{
       全部狀態
     </option>
 
-    <option value="未付款" ${status === "未付款" ? "selected" : ""}>
-      未付款
+    <option value="NO" ${status === "NO" ? "selected" : ""}>
+      NO
     </option>
 
-    <option value="已付款" ${status === "已付款" ? "selected" : ""}>
-      已付款
+    <option value="OK" ${status === "OK" ? "selected" : ""}>
+      OK
     </option>
 
   </select>

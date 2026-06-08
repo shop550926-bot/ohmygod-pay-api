@@ -281,7 +281,7 @@ app.post("/submit-payment", async (req, res) => {
       ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
       OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
       PaymentInfoURL: "https://ohmygod-pay-api.onrender.com/api/opay/payment-info",
-      ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
+ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
 
       NeedExtraPaidInfo: "Y",
       EncryptType: 1
@@ -396,8 +396,23 @@ app.post("/payment-info", async (req, res) => {
   }
 });
 
-app.get("/payment-info", (req, res) => {
-  res.send("請回到歐買尬付款頁面取得繳費代碼。<br><a href='/'>回首頁</a>");
+app.get("/payment-info", async (req, res) => {
+  try {
+    console.log("歐買尬 GET 導回 payment-info：", req.query);
+
+    const data = req.query;
+    const orderId = data.MerchantTradeNo;
+
+    const result = await pool.query(
+      `SELECT * FROM orders WHERE order_id=$1`,
+      [orderId]
+    );
+
+    res.send(renderPaymentInfo(data, result.rows[0]));
+  } catch (err) {
+    console.error("GET 付款資訊頁錯誤：", err);
+    res.status(500).send("付款資訊讀取失敗。<br><a href='/'>回首頁</a>");
+  }
 });
 
 app.get("/payment-result", (req, res) => {

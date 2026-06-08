@@ -471,17 +471,23 @@ ${vAccount
 
 <script>
 function copyCode(){
-  const text = document.getElementById("copyText").innerText.trim();
+
+  const account =
+  document.getElementById("copyText").innerText.trim();
+
+  const bankCode =
+  "${bankCode}";
+
+  const bankName =
+  "${bankName}";
+
+  const text =
+  `${bankCode} ${bankName}\n${account}`;
 
   navigator.clipboard.writeText(text).then(function(){
-    alert("已複製：" + text);
+    alert("已複製銀行與帳號");
   });
-}
-</script>
 
-</body>
-</html>
-`;
 }
 
 app.get("/admin/orders", async (req, res) => {

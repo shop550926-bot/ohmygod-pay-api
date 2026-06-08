@@ -359,20 +359,27 @@ app.post("/api/opay/notify", async (req, res) => {
     await pool.query(
       `UPDATE orders
        SET status=$1,
-           payment_no=COALESCE(NULLIF($2,''), payment_no),
-           bank_code=COALESCE(NULLIF($3,''), bank_code),
-           v_account=COALESCE(NULLIF($4,''), v_account),
-           trade_no=COALESCE(NULLIF($5,''), trade_no)
-       WHERE order_id=$6`,
+           payment_no=$2
+       WHERE order_id=$3`,
       [
         data.RtnCode === "1" ? "OK" : "NO",
-        data.PaymentNo || data.CVSCode || data.CVSNo || "",
-        data.BankCode || "",
-        data.vAccount || data.VirtualAccount || data.ATMAccNo || "",
-        data.TradeNo || data.OTradeNo || "",
+
+        data.PaymentInfo ||
+        data.PayInfo ||
+        data.PayerBank ||
+        data.PaymentNo ||
+        "",
+
         orderId
       ]
     );
+
+    res.send("1|OK");
+  } catch (err) {
+    console.error(err);
+    res.send("1|OK");
+  }
+});
 
     res.send("1|OK");
   } catch (err) {
@@ -619,12 +626,7 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 
 <td>
 ${order.status === "OK"
-  ? `
-    ${order.payment === "ATM"
-      ? `${order.bank_code || "-"}<br>${order.v_account ? order.v_account.slice(-4) + "*" : "-"}`
-      : `${order.payment_no || "-"}`
-    }
-  `
+  ? (order.payment_no || "-")
   : "-"
 }
 </td>

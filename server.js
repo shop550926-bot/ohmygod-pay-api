@@ -356,21 +356,12 @@ app.post("/api/opay/notify", async (req, res) => {
     const data = req.body;
     const orderId = data.MerchantTradeNo;
 
-    const paidText =
-      data.PaymentInfo ||
-      data.PayInfo ||
-      data.PayerBank ||
-      data.PaymentNo ||
-      "";
-
     await pool.query(
       `UPDATE orders
-       SET status=$1,
-           payment_no=COALESCE(NULLIF($2,''), payment_no)
-       WHERE order_id=$3`,
+       SET status=$1
+       WHERE order_id=$2`,
       [
         data.RtnCode === "1" ? "OK" : "NO",
-        paidText,
         orderId
       ]
     );
@@ -620,15 +611,18 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 
 <td>
 ${order.status === "OK"
-  ? (order.payment_no || "-")
+  ? (order.trade_no || "-")
   : "-"
 }
 </td>
 
 <td>
-<a class="view-btn"
-href="/admin/order/${order.order_id}">
+<a class="view-btn" href="/admin/order/${order.order_id}">
 查看
+</a>
+
+<a class="view-btn" href="/admin/payinfo/${order.order_id}">
+付款資訊
 </a>
 </td>
 
@@ -866,6 +860,40 @@ ${rows || `<tr><td colspan="9">目前沒有訂單</td></tr>`}
     res.status(500).send("後台讀取失敗");
   }
 });
+
+app.get("/admin/payinfo/:orderId", async (req, res) => {
+  const orderId = req.params.orderId;
+
+  const result = await pool.query(
+    "SELECT * FROM orders WHERE order_id=$1",
+    [orderId]
+  );
+
+  const order = result.rows[0];
+
+  if (!order) return res.send("找不到訂單");
+
+  res.send(`
+    <form method="POST" action="/admin/payinfo/${orderId}" style="font-family:Microsoft JhengHei;padding:30px;">
+      <h2>編輯付款資訊</h2>
+      <p>訂單：${order.order_id}</p>
+      <textarea name="trade_no" style="width:300px;height:100px;">${order.trade_no || ""}</textarea>
+      <br><br>
+      <button type="submit">儲存</button>
+      <a href="/admin/orders">返回</a>
+    </form>
+  `);
+});
+
+app.post("/admin/payinfo/:orderId", async (req, res) => {
+  await pool.query(
+    "UPDATE orders SET trade_no=$1 WHERE order_id=$2",
+    [req.body.trade_no || "", req.params.orderId]
+  );
+
+  res.redirect("/admin/orders");
+});
+
 app.get("/admin/order/:orderId", async (req, res) => {
 
   const orderId = req.params.orderId;

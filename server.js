@@ -474,11 +474,11 @@ ${vAccount
 </div>
 
 <script>
+
 function copyCode(){
 
   const text =
-`銀行：${bankCode} ${bankName}
-帳號：${vAccount}`;
+"銀行：${bankCode} ${bankName}\\n帳號：${vAccount}";
 
   navigator.clipboard.writeText(text);
 

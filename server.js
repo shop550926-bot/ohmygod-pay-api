@@ -427,7 +427,13 @@ body{margin:0;padding:20px;background:#f3f4f6;}
 .success{text-align:center;font-size:26px;font-weight:900;color:#16a34a;margin-bottom:20px;}
 .label{font-size:16px;font-weight:900;color:#374151;margin-bottom:8px;text-align:center;}
 .code-box{background:#f9fafb;border:2px solid #f59e0b;border-radius:16px;padding:18px;text-align:center;margin-bottom:15px;}
-.code{font-size:30px;font-weight:900;color:#dc2626;word-break:break-all;letter-spacing:1px;}
+.code{
+  font-size:22px;
+  font-weight:900;
+  color:#dc2626;
+  word-break:break-all;
+  line-height:1.8;
+}
 .copy-btn{width:100%;height:54px;border:0;border-radius:14px;background:#16a34a;color:white;font-size:18px;font-weight:900;cursor:pointer;}
 .info{margin-top:20px;background:#f9fafb;padding:18px;border-radius:16px;}
 .row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #e5e7eb;padding:10px 0;font-size:15px;}
@@ -444,15 +450,13 @@ body{margin:0;padding:20px;background:#f3f4f6;}
 
  
 
-<div class="label">
+<div class="code-box">
+  <div class="code" id="copyText">
 ${vAccount
-? `${bankCode} ${bankName}`
-: "超商代碼"}
-</div>
-
-  <div class="code-box">
-    <div class="code" id="copyText">${copyValue || "-"}</div>
+? `銀行：${bankCode} ${bankName}<br>帳號：${vAccount}`
+: `繳費代碼：${paymentNo}`}
   </div>
+</div>
 
   <button class="copy-btn" onclick="copyCode()">📋 一鍵複製</button>
 
@@ -472,25 +476,13 @@ ${vAccount
 <script>
 function copyCode(){
 
-  const account =
-  document.getElementById("copyText").innerText.trim();
-
-  const bankCode = "${bankCode}";
-  const bankName = "${bankName}";
-
   const text =
-  bankCode + " " + bankName + "\n" + account;
+`銀行：${bankCode} ${bankName}
+帳號：${vAccount}`;
 
-  navigator.clipboard.writeText(text).then(function(){
-    alert("已複製銀行與帳號");
-  });
+  navigator.clipboard.writeText(text);
 
-}
-</script>
-
-</body>
-</html>
-`;
+  alert("已複製銀行與帳號");
 }
 app.get("/admin/orders", async (req, res) => {
   try {

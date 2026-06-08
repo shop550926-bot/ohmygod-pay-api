@@ -406,7 +406,16 @@ function renderPaymentInfo(data, order) {
   const amount = data.TradeAmt || data.TotalAmount || order?.amount || "";
   const paymentNo = data.PaymentNo || data.CVSCode || data.CVSNo || order?.payment_no || "";
   const bankCode = data.BankCode || order?.bank_code || "";
-  const vAccount = data.vAccount || data.VirtualAccount || order?.v_account || "";
+  const vAccount =
+  bankCode
+    ? (
+        data.ATMAccNo ||
+        data.vAccount ||
+        data.VirtualAccount ||
+        order?.v_account ||
+        ""
+      )
+    : "";
   const expireDate = data.ExpireDate || data.ExpireTime || order?.expire_date || "";
  const copyValue = vAccount || paymentNo;
 
@@ -455,11 +464,11 @@ body{margin:0;padding:20px;background:#f3f4f6;}
  
 
 <div class="code-box">
-  <div class="code" id="copyText">
-${vAccount
-? `銀行：${bankCode} ${bankName}<br>帳號：${vAccount}`
-: `繳費代碼：${paymentNo}`}
-  </div>
+<div class="code" id="copyText">
+${bankCode
+  ? `銀行：${bankCode} ${bankName}<br>帳號：${vAccount}`
+  : `${paymentNo}`}
+</div>
 </div>
 
   <button class="copy-btn" onclick="copyCode()">📋 一鍵複製</button>

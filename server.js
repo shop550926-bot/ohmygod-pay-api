@@ -356,34 +356,34 @@ app.post("/api/opay/notify", async (req, res) => {
     const data = req.body;
     const orderId = data.MerchantTradeNo;
 
+    const paidText =
+      data.PaymentInfo ||
+      data.PayInfo ||
+      data.PayerBank ||
+      data.PaymentNo ||
+      "";
+
     await pool.query(
       `UPDATE orders
        SET status=$1,
-           payment_no=$2
+           payment_no=COALESCE(NULLIF($2,''), payment_no)
        WHERE order_id=$3`,
       [
         data.RtnCode === "1" ? "OK" : "NO",
-
-        data.PaymentInfo ||
-        data.PayInfo ||
-        data.PayerBank ||
-        data.PaymentNo ||
-        "",
-
+        paidText,
         orderId
       ]
     );
 
     res.send("1|OK");
   } catch (err) {
-    console.error(err);
+    console.error("更新付款狀態錯誤：", err);
     res.send("1|OK");
   }
 });
-
     res.send("1|OK");
   } catch (err) {
-    console.error("更新付款狀態錯誤：", err);
+    console.error(err);
     res.send("1|OK");
   }
 });

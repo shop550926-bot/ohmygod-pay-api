@@ -57,6 +57,11 @@ ADD COLUMN IF NOT EXISTS trade_no VARCHAR(100)
 `);
 
 await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS mobile_url TEXT
+`);
+
+await pool.query(`
 UPDATE orders
 SET status='OK'
 WHERE status='已付款'
@@ -324,22 +329,24 @@ app.post("/api/opay/payment-info", async (req, res) => {
     const data = req.body;
     const orderId = data.MerchantTradeNo;
 
-    await pool.query(
+   await pool.query(
   `UPDATE orders
    SET payment_no=$1,
        bank_code=$2,
        v_account=$3,
        expire_date=$4,
-       trade_no=$5
-   WHERE order_id=$6`,
+       trade_no=$5,
+       mobile_url=$6
+   WHERE order_id=$7`,
   [
-    data.PaymentNo || data.CVSCode || data.CVSNo || "",
-    data.BankCode || "",
-    data.vAccount || data.VirtualAccount || "",
-    data.ExpireDate || data.ExpireTime || "",
-    data.TradeNo || data.OTradeNo || "",
-    orderId
-  ]
+  data.PaymentNo || data.CVSCode || data.CVSNo || "",
+  data.BankCode || "",
+  data.vAccount || data.VirtualAccount || "",
+  data.ExpireDate || data.ExpireTime || "",
+  data.TradeNo || data.OTradeNo || "",
+  data.PaymentURL || data.PaymentUrl || data.MobilePayUrl || "",
+  orderId
+]
 );
 
     res.send("1|OK");

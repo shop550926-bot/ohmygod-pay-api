@@ -57,11 +57,6 @@ ADD COLUMN IF NOT EXISTS trade_no VARCHAR(100)
 `);
 
 await pool.query(`
-ALTER TABLE orders
-ADD COLUMN IF NOT EXISTS mobile_url TEXT
-`);
-
-await pool.query(`
 UPDATE orders
 SET status='OK'
 WHERE status='已付款'
@@ -281,7 +276,7 @@ app.post("/submit-payment", async (req, res) => {
       ClientBackURL: "https://ohmygod-pay-api.onrender.com/payment-result",
       OrderResultURL: "https://ohmygod-pay-api.onrender.com/payment-result",
       PaymentInfoURL: "https://ohmygod-pay-api.onrender.com/api/opay/payment-info",
-ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
+      ClientRedirectURL: "https://ohmygod-pay-api.onrender.com/payment-info",
 
       NeedExtraPaidInfo: "Y",
       EncryptType: 1
@@ -329,24 +324,22 @@ app.post("/api/opay/payment-info", async (req, res) => {
     const data = req.body;
     const orderId = data.MerchantTradeNo;
 
-   await pool.query(
+    await pool.query(
   `UPDATE orders
    SET payment_no=$1,
        bank_code=$2,
        v_account=$3,
        expire_date=$4,
-       trade_no=$5,
-       mobile_url=$6
-   WHERE order_id=$7`,
+       trade_no=$5
+   WHERE order_id=$6`,
   [
-  data.PaymentNo || data.CVSCode || data.CVSNo || "",
-  data.BankCode || "",
-  data.vAccount || data.VirtualAccount || "",
-  data.ExpireDate || data.ExpireTime || "",
-  data.TradeNo || data.OTradeNo || "",
-  data.PaymentURL || data.PaymentUrl || data.MobilePayUrl || "",
-  orderId
-]
+    data.PaymentNo || data.CVSCode || data.CVSNo || "",
+    data.BankCode || "",
+    data.vAccount || data.VirtualAccount || "",
+    data.ExpireDate || data.ExpireTime || "",
+    data.TradeNo || data.OTradeNo || "",
+    orderId
+  ]
 );
 
     res.send("1|OK");
@@ -396,23 +389,8 @@ app.post("/payment-info", async (req, res) => {
   }
 });
 
-app.get("/payment-info", async (req, res) => {
-  try {
-    console.log("歐買尬 GET 導回 payment-info：", req.query);
-
-    const data = req.query;
-    const orderId = data.MerchantTradeNo;
-
-    const result = await pool.query(
-      `SELECT * FROM orders WHERE order_id=$1`,
-      [orderId]
-    );
-
-    res.send(renderPaymentInfo(data, result.rows[0]));
-  } catch (err) {
-    console.error("GET 付款資訊頁錯誤：", err);
-    res.status(500).send("付款資訊讀取失敗。<br><a href='/'>回首頁</a>");
-  }
+app.get("/payment-info", (req, res) => {
+  res.send("請回到歐買尬付款頁面取得繳費代碼。<br><a href='/'>回首頁</a>");
 });
 
 app.get("/payment-result", (req, res) => {

@@ -484,6 +484,13 @@ function copyCode(){
 
   alert("已複製銀行與帳號");
 }
+
+</script>
+
+</body>
+</html>
+`;
+}
 app.get("/admin/orders", async (req, res) => {
   try {
     const keyword = req.query.keyword || "";

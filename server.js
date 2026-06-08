@@ -491,6 +491,14 @@ function copyCode(){
   }, 2000);
 
 }
+
+</script>
+
+</body>
+</html>
+`;
+}
+
 app.get("/admin/orders", async (req, res) => {
   try {
     const keyword = req.query.keyword || "";

@@ -1029,15 +1029,13 @@ margin-top:20px;
 </tr>
 
 ${order.payment === "ATM" ? `
-
 <tr>
 <td>付款資訊</td>
 <td>
-<div class="code">
-${order.trade_no || "-"}
-</div>
+...
 </td>
 </tr>
+` : ""}
 
 <div style="font-weight:900;font-size:20px;">
 ${order.bank_code === "007"

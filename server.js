@@ -857,39 +857,6 @@ ${rows || `<tr><td colspan="9">目前沒有訂單</td></tr>`}
   }
 });
 
-app.get("/admin/payinfo/:orderId", async (req, res) => {
-  const orderId = req.params.orderId;
-
-  const result = await pool.query(
-    "SELECT * FROM orders WHERE order_id=$1",
-    [orderId]
-  );
-
-  const order = result.rows[0];
-
-  if (!order) return res.send("找不到訂單");
-
-  res.send(`
-    <form method="POST" action="/admin/payinfo/${orderId}" style="font-family:Microsoft JhengHei;padding:30px;">
-      <h2>編輯付款資訊</h2>
-      <p>訂單：${order.order_id}</p>
-      <textarea name="trade_no" style="width:300px;height:100px;">${order.trade_no || ""}</textarea>
-      <br><br>
-      <button type="submit">儲存</button>
-      <a href="/admin/orders">返回</a>
-    </form>
-  `);
-});
-
-app.post("/admin/payinfo/:orderId", async (req, res) => {
-  await pool.query(
-    "UPDATE orders SET trade_no=$1 WHERE order_id=$2",
-    [req.body.trade_no || "", req.params.orderId]
-  );
-
-  res.redirect("/admin/orders");
-});
-
 app.get("/admin/order/:orderId", async (req, res) => {
 
   const orderId = req.params.orderId;
@@ -1020,12 +987,6 @@ margin-top:20px;
 </tr>
 
 <tr>
-<td>付款狀態</td>
-<td>${order.status}</td>
-</tr>
-
-${order.payment === "ATM" ? `
-<tr>
 <td>付款資訊</td>
 <td>
 
@@ -1053,7 +1014,10 @@ ${order.payment_no || "-"}
 </td>
 </tr>
 
-` : ""}
+<tr>
+<td>付款狀態</td>
+<td>${order.status}</td>
+</tr>
 
 <tr>
 <td>繳費期限</td>

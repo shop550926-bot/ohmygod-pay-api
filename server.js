@@ -404,7 +404,14 @@ function renderPaymentInfo(data, order) {
   const bankCode = data.BankCode || order?.bank_code || "";
   const vAccount = data.vAccount || data.VirtualAccount || order?.v_account || "";
   const expireDate = data.ExpireDate || data.ExpireTime || order?.expire_date || "";
-  const copyValue = vAccount || paymentNo;
+ const copyValue = vAccount || paymentNo;
+
+const bankName =
+bankCode === "007"
+? "第一銀行"
+: bankCode === "822"
+? "中國信託"
+: "";
 
   return `
 <!doctype html>
@@ -435,7 +442,13 @@ body{margin:0;padding:20px;background:#f3f4f6;}
 
   <div class="success">✅ 訂單建立成功</div>
 
-  <div class="label">${vAccount ? "ATM 虛擬帳號" : "超商代碼"}</div>
+ 
+
+<div class="label">
+${vAccount
+? `${bankCode} ${bankName}`
+: "超商代碼"}
+</div>
 
   <div class="code-box">
     <div class="code" id="copyText">${copyValue || "-"}</div>
@@ -580,7 +593,24 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 </td>
 
 <td>
-${order.trade_no || "-"}
+
+${order.payment === "ATM"
+
+? `${order.bank_code === "007"
+? "007 第一銀行"
+: order.bank_code === "822"
+? "822 中國信託"
+: order.bank_code}
+
+<br>
+
+${order.v_account
+? order.v_account.slice(-4) + "*"
+: "-"
+}`
+
+: `${order.payment_no || "-"}`}
+
 </td>
 
 <td>
@@ -958,40 +988,44 @@ margin-top:20px;
 <td>${order.status}</td>
 </tr>
 
+${order.payment === "ATM" ? `
+
+<tr>
+<td>付款資訊</td>
+<td>
+
+<div style="font-weight:900;font-size:20px;">
+${order.bank_code === "007"
+? "第一銀行（007）"
+: order.bank_code === "822"
+? "中國信託（822）"
+: order.bank_code || "-"}
+
+</div>
+
+<div
+class="code"
+style="margin-top:10px;"
+>
+${order.v_account || "-"}
+</div>
+
+</td>
+</tr>
 <tr>
 <td>超商代碼</td>
 <td>
-
 <span class="code" id="copyCode">
 ${order.payment_no || "-"}
 </span>
 
-<button
-onclick="copyPayment()"
-style="
-margin-left:10px;
-background:#ec4899;
-color:white;
-border:0;
-padding:6px 12px;
-border-radius:8px;
-cursor:pointer;
-">
+<button ...>
 複製
 </button>
-
 </td>
 </tr>
 
-<tr>
-<td>銀行代碼</td>
-<td>${order.bank_code || "-"}</td>
-</tr>
-
-<tr>
-<td>虛擬帳號</td>
-<td class="code">${order.v_account || "-"}</td>
-</tr>
+`}
 
 <tr>
 <td>繳費期限</td>

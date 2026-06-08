@@ -381,12 +381,6 @@ app.post("/api/opay/notify", async (req, res) => {
     res.send("1|OK");
   }
 });
-    res.send("1|OK");
-  } catch (err) {
-    console.error(err);
-    res.send("1|OK");
-  }
-});
 
 app.post("/payment-info", async (req, res) => {
   try {

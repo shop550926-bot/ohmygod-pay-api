@@ -618,24 +618,15 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 </td>
 
 <td>
-
-${order.payment === "ATM"
-
-? `${order.bank_code === "007"
-? "007 第一銀行"
-: order.bank_code === "822"
-? "822 中國信託"
-: order.bank_code}
-
-<br>
-
-${order.v_account
-? order.v_account.slice(-4) + "*"
-: "-"
-}`
-
-: `${order.payment_no || "-"}`}
-
+${order.status === "OK"
+  ? `
+    ${order.payment === "ATM"
+      ? `${order.bank_code || "-"}<br>${order.v_account ? order.v_account.slice(-4) + "*" : "-"}`
+      : `${order.payment_no || "-"}`
+    }
+  `
+  : "-"
+}
 </td>
 
 <td>

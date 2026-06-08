@@ -482,14 +482,14 @@ function copyCode(){
 
   navigator.clipboard.writeText(text);
 
-  alert("已複製銀行與帳號");
-}
+  const btn = document.querySelector(".copy-btn");
 
-</script>
+  btn.innerHTML = "✅ 已複製";
 
-</body>
-</html>
-`;
+  setTimeout(() => {
+    btn.innerHTML = "📋 一鍵複製";
+  }, 2000);
+
 }
 app.get("/admin/orders", async (req, res) => {
   try {

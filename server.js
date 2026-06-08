@@ -334,12 +334,11 @@ app.post("/api/opay/payment-info", async (req, res) => {
    WHERE order_id=$6`,
   [
     data.PaymentNo || data.CVSCode || data.CVSNo || "",
-    data.BankCode || "",
-    data.vAccount || data.VirtualAccount || "",
-    data.ExpireDate || data.ExpireTime || "",
-    data.TradeNo || data.OTradeNo || "",
-    orderId
-  ]
+  data.BankCode || "",
+  data.ATMAccNo || data.VirtualAccount || data.vAccount || data.PaymentNo || "",
+  data.ExpireDate || data.ExpireTime || "",
+  data.TradeNo || data.OTradeNo || "",
+  orderId
 );
 
     res.send("1|OK");
@@ -480,7 +479,7 @@ ${vAccount
 function copyCode(){
 
   const text =
-"銀行：${bankCode} ${bankName}\\n帳號：${vAccount}";
+    document.getElementById("copyText").innerText;
 
   navigator.clipboard.writeText(text);
 

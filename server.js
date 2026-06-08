@@ -465,7 +465,6 @@ ${vAccount
     <div class="row"><span>訂單編號</span><span>${orderId}</span></div>
     <div class="row"><span>交易金額</span><span>${amount} 元</span></div>
     <div class="row"><span>付款方式</span><span>${vAccount ? "ATM 虛擬帳號" : "超商代碼"}</span></div>
-    ${vAccount ? `<div class="row"><span>銀行代碼</span><span>${bankCode || "-"}</span></div>` : ""}
     <div class="row"><span>繳費期限</span><span>${expireDate || "-"}</span></div>
   </div>
 

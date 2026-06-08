@@ -358,9 +358,20 @@ app.post("/api/opay/notify", async (req, res) => {
 
     await pool.query(
       `UPDATE orders
-       SET status=$1
-       WHERE order_id=$2`,
-      [data.RtnCode === "1" ? "OK" : "NO", orderId]
+       SET status=$1,
+           payment_no=COALESCE(NULLIF($2,''), payment_no),
+           bank_code=COALESCE(NULLIF($3,''), bank_code),
+           v_account=COALESCE(NULLIF($4,''), v_account),
+           trade_no=COALESCE(NULLIF($5,''), trade_no)
+       WHERE order_id=$6`,
+      [
+        data.RtnCode === "1" ? "OK" : "NO",
+        data.PaymentNo || data.CVSCode || data.CVSNo || "",
+        data.BankCode || "",
+        data.vAccount || data.VirtualAccount || data.ATMAccNo || "",
+        data.TradeNo || data.OTradeNo || "",
+        orderId
+      ]
     );
 
     res.send("1|OK");

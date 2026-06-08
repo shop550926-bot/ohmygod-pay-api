@@ -1000,32 +1000,16 @@ ${order.bank_code === "007"
 : order.bank_code === "822"
 ? "中國信託（822）"
 : order.bank_code || "-"}
-
 </div>
 
-<div
-class="code"
-style="margin-top:10px;"
->
+<div class="code" style="margin-top:10px;">
 ${order.v_account || "-"}
 </div>
 
 </td>
 </tr>
-<tr>
-<td>超商代碼</td>
-<td>
-<span class="code" id="copyCode">
-${order.payment_no || "-"}
-</span>
 
-<button ...>
-複製
-</button>
-</td>
-</tr>
-
-`}
+` : ""}
 
 <tr>
 <td>繳費期限</td>

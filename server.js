@@ -331,8 +331,8 @@ app.post("/api/opay/payment-info", async (req, res) => {
        v_account=$3,
        expire_date=$4,
        trade_no=$5
-   WHERE order_id=$6`,\
-   
+   WHERE order_id=$6`,
+
   [
   data.PaymentNo || data.CVSCode || data.CVSNo || "",
   data.BankCode || "",

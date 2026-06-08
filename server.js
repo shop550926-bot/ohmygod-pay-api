@@ -620,10 +620,6 @@ ${order.status === "OK"
 <a class="view-btn" href="/admin/order/${order.order_id}">
 查看
 </a>
-
-<a class="view-btn" href="/admin/payinfo/${order.order_id}">
-付款資訊
-</a>
 </td>
 
 </tr>
@@ -1032,12 +1028,10 @@ ${order.payment === "ATM" ? `
 <tr>
 <td>付款資訊</td>
 <td>
-...
-</td>
-</tr>
-` : ""}
 
-<div style="font-weight:900;font-size:20px;">
+${order.payment === "ATM"
+? `
+<div style="font-weight:900;font-size:18px;">
 ${order.bank_code === "007"
 ? "第一銀行（007）"
 : order.bank_code === "822"
@@ -1048,6 +1042,13 @@ ${order.bank_code === "007"
 <div class="code" style="margin-top:10px;">
 ${order.v_account || "-"}
 </div>
+`
+: `
+<div class="code">
+${order.payment_no || "-"}
+</div>
+`
+}
 
 </td>
 </tr>

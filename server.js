@@ -659,7 +659,19 @@ const totalResult = await pool.query(`
 const monthAmount = monthResult.rows[0].month_amount;
 const totalAmount = totalResult.rows[0].total_amount;
 
-   const rows = result.rows.map(order => `
+const bankNames = {
+  "004": "臺灣銀行",
+  "005": "臺灣土地銀行",
+  "006": "合作金庫",
+  "007": "第一銀行",
+  "008": "華南銀行",
+  "009": "彰化銀行",
+  "108": "陽信商業銀行",
+  "700": "中華郵政",
+  "822": "中國信託"
+};
+
+const rows = result.rows.map(order => `
   <tr>
 
 <td>${order.order_id}</td>

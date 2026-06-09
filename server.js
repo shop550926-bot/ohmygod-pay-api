@@ -609,7 +609,10 @@ const totalAmount = totalResult.rows[0].total_amount;
 <td>${order.buyer_name || "-"}</td>
 
 <td>
-${order.payment_no || order.v_account || "-"}
+${order.payment === "CVS"
+  ? `${order.store_id || "-"}<br>${order.store_name || ""}`
+  : `${order.bank_code || "-"}`
+}
 </td>
 
 <td>

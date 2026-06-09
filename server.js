@@ -334,29 +334,26 @@ app.post("/api/opay/payment-info", async (req, res) => {
     const data = req.body;
     const orderId = data.MerchantTradeNo;
 
-    await pool.query(
+await pool.query(
   `UPDATE orders
    SET payment_no=$1,
-    bank_code=$2,
-    v_account=$3,
-    expire_date=$4,
-    trade_no=$5,
-    store_id=$6,
-    store_name=$7
-WHERE order_id=$8
-
+       bank_code=$2,
+       v_account=$3,
+       expire_date=$4,
+       trade_no=$5,
+       store_id=$6,
+       store_name=$7
+   WHERE order_id=$8`,
   [
-  data.PaymentNo || data.CVSCode || data.CVSNo || "",
-  data.BankCode || "",
-  data.ATMAccNo || data.VirtualAccount || data.vAccount || data.PaymentNo || "",
-  data.ExpireDate || data.ExpireTime || "",
-  data.TradeNo || data.OTradeNo || "",
-
-  data.CVSStoreID || "",
-  data.CVSStoreName || "",
-
-  orderId
-]
+    data.PaymentNo || data.CVSCode || data.CVSNo || "",
+    data.BankCode || "",
+    data.ATMAccNo || data.VirtualAccount || data.vAccount || data.PaymentNo || "",
+    data.ExpireDate || data.ExpireTime || "",
+    data.TradeNo || data.OTradeNo || "",
+    data.CVSStoreID || "",
+    data.CVSStoreName || "",
+    orderId
+  ]
 );
 
     res.send("1|OK");

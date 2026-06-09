@@ -57,6 +57,16 @@ ADD COLUMN IF NOT EXISTS trade_no VARCHAR(100)
 `);
 
 await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS store_id VARCHAR(50)
+`);
+
+await pool.query(`
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS store_name VARCHAR(100)
+`);
+
+await pool.query(`
 UPDATE orders
 SET status='OK'
 WHERE status='已付款'
@@ -327,11 +337,13 @@ app.post("/api/opay/payment-info", async (req, res) => {
     await pool.query(
   `UPDATE orders
    SET payment_no=$1,
-       bank_code=$2,
-       v_account=$3,
-       expire_date=$4,
-       trade_no=$5
-   WHERE order_id=$6`,
+    bank_code=$2,
+    v_account=$3,
+    expire_date=$4,
+    trade_no=$5,
+    store_id=$6,
+    store_name=$7
+WHERE order_id=$8
 
   [
   data.PaymentNo || data.CVSCode || data.CVSNo || "",
@@ -339,6 +351,10 @@ app.post("/api/opay/payment-info", async (req, res) => {
   data.ATMAccNo || data.VirtualAccount || data.vAccount || data.PaymentNo || "",
   data.ExpireDate || data.ExpireTime || "",
   data.TradeNo || data.OTradeNo || "",
+
+  data.CVSStoreID || "",
+  data.CVSStoreName || "",
+
   orderId
 ]
 );
@@ -530,8 +546,10 @@ const payment = req.query.payment || "all";
   bank_code,
   v_account,
   trade_no,
-  expire_date,
-  created_at
+store_id,
+store_name,
+expire_date,
+created_at
 FROM orders
       WHERE 1=1
     `;
@@ -620,9 +638,9 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 </td>
 
 <td>
-${order.status === "OK"
-  ? (order.trade_no || "-")
-  : "-"
+${order.payment === "CVS"
+  ? `${order.store_id || order.payment_no || "-"}<br>${order.store_name || ""}`
+  : `${order.bank_code || ""}<br>${order.v_account || "-"}`
 }
 </td>
 

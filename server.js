@@ -374,8 +374,6 @@ app.post("/api/opay/notify", async (req, res) => {
   `UPDATE orders
    SET status=$1,
        payment_no=COALESCE(NULLIF($2,''), payment_no),
-       bank_code=COALESCE(NULLIF($3,''), bank_code),
-       v_account=COALESCE(NULLIF($4,''), v_account),
        trade_no=COALESCE(NULLIF($5,''), trade_no),
        store_id=COALESCE(NULLIF($6,''), store_id),
        store_name=COALESCE(NULLIF($7,''), store_name)

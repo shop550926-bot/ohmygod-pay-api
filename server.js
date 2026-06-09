@@ -346,7 +346,7 @@ await pool.query(
    WHERE order_id=$8`,
   [
     data.PaymentNo || data.CVSCode || data.CVSNo || "",
-    data.BankCode || "",
+    data.ATMAccBank || data.BankCode || "",
     data.ATMAccNo || data.VirtualAccount || data.vAccount || data.PaymentNo || "",
     data.ExpireDate || data.ExpireTime || "",
     data.TradeNo || data.OTradeNo || "",
@@ -609,9 +609,9 @@ const totalAmount = totalResult.rows[0].total_amount;
 <td>${order.buyer_name || "-"}</td>
 
 <td>
-${order.payment === "CVS"
-  ? `${order.store_id || "-"}<br>${order.store_name || ""}`
-  : `${order.bank_code || "-"}`
+${order.payment === "ATM"
+  ? `${order.bank_code || "ATM"}<br>${order.v_account || "-"}`
+  : `${order.payment_no || "-"}`
 }
 </td>
 
@@ -639,8 +639,8 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 
 <td>
 ${order.payment === "CVS"
-  ? `${order.store_id || order.payment_no || "-"}<br>${order.store_name || ""}`
-  : `${order.bank_code || ""}<br>${order.v_account || "-"}`
+  ? `${order.store_id || "-"}<br>${order.store_name || ""}`
+  : `${order.bank_code || "-"}`
 }
 </td>
 

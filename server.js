@@ -454,12 +454,46 @@ function renderPaymentInfo(data, order) {
   const expireDate = data.ExpireDate || data.ExpireTime || order?.expire_date || "";
  const copyValue = vAccount || paymentNo;
 
-const bankName =
-bankCode === "007"
-? "第一銀行"
-: bankCode === "822"
-? "中國信託"
-: "";
+const bankNames = {
+  "004": "臺灣銀行",
+  "005": "臺灣土地銀行",
+  "006": "合作金庫",
+  "007": "第一銀行",
+  "008": "華南銀行",
+  "009": "彰化銀行",
+  "011": "上海商業儲蓄銀行",
+  "012": "台北富邦銀行",
+  "013": "國泰世華銀行",
+  "016": "高雄銀行",
+  "017": "兆豐銀行",
+  "021": "花旗銀行",
+  "048": "王道銀行",
+  "050": "臺灣中小企業銀行",
+  "052": "渣打銀行",
+  "053": "台中商業銀行",
+  "054": "京城銀行",
+  "081": "滙豐銀行",
+  "101": "瑞興銀行",
+  "102": "華泰銀行",
+  "103": "臺灣新光銀行",
+  "108": "陽信商業銀行",
+  "118": "板信商業銀行",
+  "147": "三信商業銀行",
+  "700": "中華郵政",
+  "803": "聯邦銀行",
+  "805": "遠東銀行",
+  "806": "元大銀行",
+  "807": "永豐銀行",
+  "808": "玉山銀行",
+  "809": "凱基銀行",
+  "810": "星展銀行",
+  "812": "台新銀行",
+  "815": "日盛銀行",
+  "816": "安泰銀行",
+  "822": "中國信託"
+};
+
+const bankName = bankNames[bankCode] || "";
 
   return `
 <!doctype html>
@@ -662,9 +696,14 @@ ${dayjs(order.created_at).format("YYYY/MM/DD HH:mm:ss")}
 </td>
 
 <td>
-${order.payment === "CVS"
-  ? `${order.store_id || "-"}<br>${order.store_name || ""}`
-  : `${order.paid_bank_code || "-"}<br>${order.paid_bank_account || ""}`
+${
+  order.paid_bank_code
+    ? `${order.paid_bank_code}${bankNames[order.paid_bank_code] ? " " + bankNames[order.paid_bank_code] : ""}<br>${order.paid_bank_account || ""}`
+    : (
+        order.store_id
+          ? `${order.store_id}<br>${order.store_name || ""}`
+          : "-"
+      )
 }
 </td>
 

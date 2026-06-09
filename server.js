@@ -336,13 +336,13 @@ app.post("/api/opay/payment-info", async (req, res) => {
 
 await pool.query(
   `UPDATE orders
-   SET payment_no=$1,
-       bank_code=$2,
-       v_account=$3,
-       expire_date=$4,
-       trade_no=$5,
-       store_id=$6,
-       store_name=$7
+   SET payment_no=COALESCE(NULLIF($1,''), payment_no),
+    bank_code=COALESCE(NULLIF($2,''), bank_code),
+    v_account=COALESCE(NULLIF($3,''), v_account),
+    expire_date=COALESCE(NULLIF($4,''), expire_date),
+    trade_no=COALESCE(NULLIF($5,''), trade_no),
+    store_id=COALESCE(NULLIF($6,''), store_id),
+    store_name=COALESCE(NULLIF($7,''), store_name)
    WHERE order_id=$8`,
   [
     data.PaymentNo || data.CVSCode || data.CVSNo || "",
@@ -371,14 +371,26 @@ app.post("/api/opay/notify", async (req, res) => {
     const orderId = data.MerchantTradeNo;
 
     await pool.query(
-      `UPDATE orders
-       SET status=$1
-       WHERE order_id=$2`,
-      [
-        data.RtnCode === "1" ? "OK" : "NO",
-        orderId
-      ]
-    );
+  `UPDATE orders
+   SET status=$1,
+       payment_no=COALESCE(NULLIF($2,''), payment_no),
+       bank_code=COALESCE(NULLIF($3,''), bank_code),
+       v_account=COALESCE(NULLIF($4,''), v_account),
+       trade_no=COALESCE(NULLIF($5,''), trade_no),
+       store_id=COALESCE(NULLIF($6,''), store_id),
+       store_name=COALESCE(NULLIF($7,''), store_name)
+   WHERE order_id=$8`,
+  [
+    data.RtnCode === "1" ? "OK" : "NO",
+    data.PaymentNo || data.CVSCode || data.CVSNo || "",
+    data.ATMAccBank || data.BankCode || "",
+    data.ATMAccNo || data.VirtualAccount || data.vAccount || data.PaymentNo || "",
+    data.TradeNo || data.OTradeNo || "",
+    data.CVSStoreID || "",
+    data.CVSStoreName || "",
+    orderId
+  ]
+);
 
     res.send("1|OK");
   } catch (err) {

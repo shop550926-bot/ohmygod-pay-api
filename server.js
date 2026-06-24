@@ -608,7 +608,7 @@ paid_bank_account,
 expire_date,
 created_at
 FROM orders
-      WHERE 1=1
+      WHERE created_at >= NOW() - INTERVAL '7 days'
     `;
 
     const values = [];
